@@ -11,7 +11,10 @@ import cities from "/public/logo/cities.svg";
 import areas from "/public/logo/areas.svg";
 import roles from "/public/logo/roles.svg";
 import map from "/public/logo/map.png";
-import setting from '/public/logo/setting.png'
+import settings  from '/public/logo/settings.svg'
+import logs  from '/public/logo/logs.svg'
+import gps  from '/public/logo/gps.svg'
+
 export const menuSections = [
   {
     title: "Control",
@@ -105,8 +108,16 @@ export const menuSections = [
     items: [{ href: "/admin/admin", icon: roles, label: "Admins" }],
   },
   {
+    title: "Reports",
+    items: [{ href: "/admin/logs", icon: logs, label: "Logs" },
+      { href: "/admin/settings", icon: settings, label: "Settings" }
+     
+    ],
+  },
+  {
     title: "General",
-    items: [{ href: "/admin/map", icon: map, label: "Map" },{ href: "/admin/logs", icon: setting, label: "Logs" }],
- 
+    items: [{ href: "/admin/map", icon: map, label: "Map" },
+      { href: "/admin/gps", icon: gps, label: "GPS" }
+    ],
   },
 ];

@@ -436,6 +436,7 @@ const Page = () => {
             <input
               value={companyId?.unit_price || ""}
               type="number"
+              min={1}
               className="input bg-gray-200"
               readOnly
             />
@@ -445,7 +446,7 @@ const Page = () => {
             <label className="block text-gray-700 font-medium mb-1" htmlFor="">
               Quantity 
             </label>
-            <input type="number" min={0} className="input" onChange={handleChange} />
+            <input type="number" min={1} className="input" onChange={handleChange} />
           </div>
 
           <div>
@@ -456,6 +457,7 @@ const Page = () => {
               value={totalAmount}
               readOnly
               type="number"
+              min={1}
               className="input bg-gray-200"
             />
           </div>

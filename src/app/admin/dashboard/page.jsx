@@ -29,7 +29,7 @@ import {
 } from "react-icons/fa";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
+const convertToKg = (value)=>value*.92
 // Stat Card Component
 const StatCard = ({ title, value, icon }) => (
   <div className="px-5 py-6 shadow-lg rounded-2xl flex gap-5 items-center w-full bg-white hover:shadow-xl transition-shadow">
@@ -88,8 +88,8 @@ const Page = () => {
       icon: <FaUser className="text-[#17a3d7]" size={27} />, // رمز المستخدم
     },
     {
-      title: "Total Liters Today",
-      value: data?.today_liters ?? "-",
+      title: "Total Kgs Today",
+      value:convertToKg( data?.today_liters) ?? "-",
       icon: <FaTint className="text-[#17a3d7]" size={27} />, // رمز قطرة ماء يرمز للّترات
     },
     {
@@ -123,8 +123,8 @@ const Page = () => {
       icon: <FaBoxes className="text-[#17a3d7]" size={27} />, // صناديق ترمز للعمليات أو المعالجة
     },
     {
-      title: "Total Processing Liters",
-      value: data?.total_processing_liters ?? "-",
+      title: "Total Processing Kgs",
+      value: convertToKg(data?.total_processing_liters) ?? "-",
       icon: <FaGasPump className="text-[#17a3d7]" size={27} />, // مضخة وقود ترمز للّترات المعالجة
     },
   ];
@@ -132,16 +132,16 @@ const Page = () => {
   // إعداد بيانات الرسوم البيانية
   const barChartDataSets = [
     {
-      title: "Monthly Collected Liters",
+      title: "Monthly Collected Kgs",
       data: {
         labels: ["Oil Collections", "Requests", "Instant Collections"],
         dataset: [
           {
-            label: "Liters",
+            label: "Kgs",
             data: [
-              data?.monthly_collected_liters?.total_oil_collections ?? 0,
-              data?.monthly_collected_liters?.total_requests ?? 0,
-              data?.monthly_collected_liters?.total_instant_collections ?? 0,
+             convertToKg( data?.monthly_collected_liters?.total_oil_collections) ?? 0,
+             convertToKg( data?.monthly_collected_liters?.total_requests )?? 0,
+           convertToKg(    data?.monthly_collected_liters?.total_instant_collections )?? 0,
             ],
             backgroundColor: "rgba(54, 162, 235, 0.8)",
           },

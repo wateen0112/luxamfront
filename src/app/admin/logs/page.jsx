@@ -32,23 +32,55 @@ const Page = () => {
 
       // Process the data to make it more readable
       const processedData = response.data.data.map((log) => {
-        const { properties, subject_type, causer_email, created_at } = log;
+        const { properties, subject_type, causer_email, created_at, description } = log;
 
         // Extract relevant data based on the subject type
         let details = {};
-        if (subject_type === "App\\Models\\OilCollection") {
-          details = {
-            type: "Oil Collection",
-            action: log.description,
-            ...properties.data, // Include properties.data for oil collection logs
-          };
-        } else if (subject_type === "App\\Models\\City") {
-          details = {
-            type: "City Update",
-            action: log.description,
-            oldName: properties.old?.name,
-            newName: properties.new?.name,
-          };
+        switch (subject_type) {
+          case "App\\Models\\City":
+            details = {
+              type: "City Update",
+              action: description,
+              oldName: properties.data?.old?.name, // Access properties.data
+              newName: properties.data?.new?.name, // Access properties.data
+            };
+            break;
+          case "App\\Models\\Request":
+            details = {
+              type: "Request Update",
+              action: description,
+              oldStatus: properties.data?.old?.status, // Access properties.data
+              newStatus: properties.data?.new?.status, // Access properties.data
+            };
+            break;
+          case "App\\Models\\InstantCollection":
+            details = {
+              type: "Instant Collection",
+              action: description,
+              oldQuantity: properties.data?.old?.quantity, // Access properties.data
+              newQuantity: properties.data?.new?.quantity, // Access properties.data
+            };
+            break;
+          case "App\\Models\\OilCollection": // Add case for OilCollection
+            details = {
+              type: "Oil Collection",
+              action: description,
+              day: properties.data?.day, // Access properties.data
+              price: properties.data?.price, // Access properties.data
+              status: properties.data?.status, // Access properties.data
+              quantity: properties.data?.quantity, // Access properties.data
+              public_id: properties.data?.public_id, // Access properties.data
+              address_id: properties.data?.address_id, // Access properties.data
+              payment_type_id: properties.data?.payment_type_id, // Access properties.data
+              company_branch_id: properties.data?.company_branch_id, // Access properties.data
+              vehicle_driver_id: properties.data?.vehicle_driver_id, // Access properties.data
+            };
+            break;
+          default:
+            details = {
+              type: "Other",
+              action: description,
+            };
         }
 
         return {
@@ -191,7 +223,7 @@ const Page = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredLogs?.data?.length > 0 ? (
                 filteredLogs.data.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50 transition-colors"> {/* Use log.id as the unique key */}
+                  <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {log.type}
                     </td>
@@ -205,17 +237,32 @@ const Page = () => {
                       {log.createdAt}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {log.type === "Oil Collection" ? (
+                      {log.type === "City Update" ? (
+                        <div>
+                          <p>Old Name: {log.oldName}</p>
+                          <p>New Name: {log.newName}</p>
+                        </div>
+                      ) : log.type === "Request Update" ? (
+                        <div>
+                          <p>Old Status: {log.oldStatus}</p>
+                          <p>New Status: {log.newStatus}</p>
+                        </div>
+                      ) : log.type === "Instant Collection" ? (
+                        <div>
+                          <p>Old Quantity: {log.oldQuantity}</p>
+                          <p>New Quantity: {log.newQuantity}</p>
+                        </div>
+                      ) : log.type === "Oil Collection" ? ( // Add case for Oil Collection
                         <div>
                           <p>Day: {log.day}</p>
                           <p>Quantity: {log.quantity}</p>
                           <p>Price: {log.price}</p>
                           <p>Status: {log.status}</p>
-                        </div>
-                      ) : log.type === "City Update" ? (
-                        <div>
-                          <p>Old Name: {log.oldName}</p>
-                          <p>New Name: {log.newName}</p>
+                          <p>Public ID: {log.public_id}</p>
+                          <p>Address ID: {log.address_id}</p>
+                          <p>Payment Type ID: {log.payment_type_id}</p>
+                          <p>Company Branch ID: {log.company_branch_id}</p>
+                          <p>Vehicle Driver ID: {log.vehicle_driver_id}</p>
                         </div>
                       ) : (
                         "No details available"

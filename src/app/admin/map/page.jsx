@@ -111,7 +111,7 @@ const MapPage = () => {
     <g filter="url(#filter0_d_2198_86)">
       <path fill-rule="evenodd" clip-rule="evenodd" d="M4 0.23877C2.89543 0.23877 2 1.1342 2 2.23877V76.7003C2 77.8049 2.89543 78.7003 4 78.7003H56.3102L73.9231 94.6586L91.5359 78.7003H136C137.105 78.7003 138 77.8049 138 76.7003V2.23877C138 1.1342 137.105 0.23877 136 0.23877H4Z" fill="#DE8945"/>
     </g>
-    <text x="70" y="40" font-size="16" font-family="Arial" font-weight="bold" fill="black" text-anchor="middle">${branchName.length> 15 ? branchName.slice(0,13)+'...':branchName}</text>
+    <text x="70" y="40" font-size="16" font-family="Arial" font-weight="bold" fill="#ffffff" text-anchor="middle">${branchName.length> 15 ? branchName.slice(0,13)+'...':branchName}</text>
     <defs>
       <filter id="filter0_d_2198_86" x="0" y="0.23877" width="140" height="99.4198" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
         <feFlood flood-opacity="0" result="BackgroundImageFix"/>

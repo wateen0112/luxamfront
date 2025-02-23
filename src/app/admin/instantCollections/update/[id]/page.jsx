@@ -222,8 +222,8 @@ const InstantCollections = () => {
                   Price
                 </label>
                 <input
-                min={1}
                   type="number"
+                  min={1}
                   value={collection?.price || ""}
                   onChange={(e) =>
                     handleChange(collection.id, "price", e.target.value)

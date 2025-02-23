@@ -199,7 +199,7 @@ const AddCompanyPage = () => {
             label="Unit Price"
             id="unitPrice"
             type="number"
-        
+            
             value={formData.unitPrice}
             onChange={handleChange}
           />
@@ -240,16 +240,17 @@ const AddCompanyPage = () => {
   );
 };
 
-const InputField = ({ label, id, type, value, onChange ,min }) => (
+const InputField = ({   label, id, type, value, onChange }) => (
   <div>
     <label className="block font-medium text-gray-600" htmlFor={id}>
       {label} *
     </label>
     <input
+
       id={id}
-      min={min}
       type={type}
       value={value}
+     
       onChange={onChange}
       className="input mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#17a3d7] focus:outline-none"
     />
