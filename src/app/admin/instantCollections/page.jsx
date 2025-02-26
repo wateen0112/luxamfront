@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Header from "../../../components/tableComponents/Header";
 import Table from "../../../components/tableComponents/Table";
 import Cookies from "js-cookie";
@@ -9,29 +9,44 @@ import Loading from "../../../components/Loading";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-const Page = () => {
-  const [companies, setCompanies] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPageUrl, setCurrentPageUrl] = useState(
-    `${apiUrl}/instant_collections`
-  );
+// Currency conversion function
+const convertCurrency = (aedValue) => {
+  const exchangeRates = {
+    USD: 0.2723, // 1 AED = 0.2723 USD
+    EUR: 0.2510, // 1 AED = 0.2510 EUR
+    AED: 1,      // 1 AED = 1 AED (no conversion)
+  };
+
+  const currentCurrency = Cookies.get("currency") || "AED";
+  const convertedValue = aedValue && !isNaN(aedValue)
+    ? (aedValue * exchangeRates[currentCurrency]).toFixed(2)
+    : 0;
+
+  return {
+    convertedValue,
+    currentCurrency,
+  };
+};
+
+// Main function to handle all logic and rendering
+const renderInstantCollections = async (currentPageUrl = `${apiUrl}/instant_collections`, setPage = null) => {
+  let companies = null;
+  let loading = true;
+  let error = null;
 
   const fetchCompanies = async (url) => {
     try {
-      setLoading(true);
       const token = Cookies.get("luxamToken");
-
       const response = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      // Check the response structure and adapt
       let processedData;
       if (response.data.instant_collection) {
-        // If the response contains a single instant_collection object
+        const rawPrice = response.data.instant_collection.price || 0;
+        const { convertedValue: convertedPrice, currentCurrency } = convertCurrency(rawPrice);
         processedData = [
           {
             ...response.data.instant_collection,
@@ -39,59 +54,70 @@ const Page = () => {
             branch: response.data.instant_collection.company_branch?.branch_name || "-",
             vehicle: response.data.instant_collection.vehicle_driver?.vehicle?.vehicle_number || "-",
             driver: response.data.instant_collection.vehicle_driver?.driver?.name || "-",
-            payment_type: response.data.instant_collection.payment_type || "-", // Use payment_type from instant_collection
+            payment_type: response.data.instant_collection.payment_type || "-",
+            price: rawPrice
+              ? `${convertedPrice} ${currentCurrency}`
+              : "-",
           },
         ];
-        setCompanies({
+        companies = {
           data: processedData,
           current_page: 1,
           last_page: 1,
           next_page_url: null,
-          prev_page_url: null, // Mock pagination for a single item
-        });
+          prev_page_url: null,
+        };
       } else if (response.data.data && Array.isArray(response.data.data)) {
-        // If the response is paginated with a data array (like oil collections)
-        processedData = response.data.data.map((item) => ({
-          ...item,
-          company: item.company?.name || "-",
-          branch: item.company_branch?.branch_name || "-",
-          vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-",
-          driver: item.vehicle_driver?.driver?.name || "-",
-          payment_type: item.payment_type || "-", // Use payment_type from the item
-        }));
-        setCompanies({ ...response.data, data: processedData });
+        processedData = response.data.data.map((item) => {
+          const rawPrice = item.price || 0;
+          const { convertedValue: convertedPrice, currentCurrency } = convertCurrency(rawPrice);
+          return {
+            ...item,
+            company: item.company?.name || "-",
+            branch: item.company_branch?.branch_name || "-",
+            vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-",
+            driver: item.vehicle_driver?.driver?.name || "-",
+            payment_type: item.payment_type || "-",
+            price: rawPrice
+              ? `${convertedPrice} ${currentCurrency}`
+              : "-",
+          };
+        });
+        companies = { ...response.data, data: processedData };
       } else {
-        // If the response is an array directly (without pagination)
-        processedData = (response.data || []).map((item) => ({
-          ...item,
-          company: item.company?.name || "-",
-          branch: item.company_branch?.branch_name || "-",
-          vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-",
-          driver: item.vehicle_driver?.driver?.name || "-",
-          payment_type: item.payment_type || "-", // Use payment_type from the item
-        }));
-        setCompanies({
+        processedData = (response.data || []).map((item) => {
+          const rawPrice = item.price || 0;
+          const { convertedValue: convertedPrice, currentCurrency } = convertCurrency(rawPrice);
+          return {
+            ...item,
+            company: item.company?.name || "-",
+            branch: item.company_branch?.branch_name || "-",
+            vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-",
+            driver: item.vehicle_driver?.driver?.name || "-",
+            payment_type: item.payment_type || "-",
+            price: rawPrice
+              ? `${convertedPrice} ${currentCurrency}`
+              : "-",
+          };
+        });
+        companies = {
           data: processedData,
           current_page: 1,
           last_page: 1,
           next_page_url: null,
-          prev_page_url: null, // Mock pagination for a flat array
-        });
+          prev_page_url: null,
+        };
       }
     } catch (err) {
-      setError("Failed to fetch instant collections");
+      error = "Failed to fetch instant collections";
       console.error(err);
     } finally {
-      setLoading(false);
+      loading = false;
     }
   };
 
-  useEffect(() => {
-    fetchCompanies(currentPageUrl);
-  }, [currentPageUrl]);
-
-  if (loading) return <Loading />;
-  if (error) return <p>{error}</p>;
+  // Fetch data initially or for pagination
+  await fetchCompanies(currentPageUrl);
 
   const columnDefinitions = [
     { key: "company", label: "Company" },
@@ -110,15 +136,19 @@ const Page = () => {
 
   const handleNextPage = () => {
     if (companies?.next_page_url) {
-      setCurrentPageUrl(companies.next_page_url);
+      renderInstantCollections(companies.next_page_url, setPage);
     }
   };
 
   const handlePreviousPage = () => {
     if (companies?.prev_page_url) {
-      setCurrentPageUrl(companies.prev_page_url);
+      renderInstantCollections(companies.prev_page_url, setPage);
     }
   };
+
+  // Return JSX based on current state
+  if (loading) return <Loading />;
+  if (error) return <p>{error}</p>;
 
   return (
     <div className="px-4 sm:px-8 py-6 hide-scrollbar">
@@ -137,6 +167,22 @@ const Page = () => {
       </div>
     </div>
   );
+};
+
+// Wrapper component to trigger the initial render
+const Page = () => {
+  const [pageContent, setPageContent] = useState(null);
+
+  const setPage = (content) => {
+    setPageContent(content);
+  };
+
+  // Initial render
+  if (!pageContent) {
+    renderInstantCollections(apiUrl + "/instant_collections", setPage).then(setPage);
+  }
+
+  return pageContent;
 };
 
 export default Page;

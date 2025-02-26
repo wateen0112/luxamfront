@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Header from "../../../components/tableComponents/Header";
 import Table from "../../../components/tableComponents/Table";
 import Cookies from "js-cookie";
@@ -9,49 +9,67 @@ import Loading from "../../../components/Loading";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-const Page = () => {
-  const [companies, setCompanies] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPageUrl, setCurrentPageUrl] = useState(
-    `${apiUrl}/oil_collections`
-  );
+// Currency conversion function
+const convertCurrency = (aedValue) => {
+  const exchangeRates = {
+    USD: 0.2723, // 1 AED = 0.2723 USD
+    EUR: 0.2510, // 1 AED = 0.2510 EUR
+    AED: 1,      // 1 AED = 1 AED (no conversion)
+  };
+
+  const currentCurrency = Cookies.get("currency") || "AED";
+  const convertedValue = aedValue && !isNaN(aedValue)
+    ? (aedValue * exchangeRates[currentCurrency]).toFixed(2)
+    : 0;
+
+  return {
+    convertedValue,
+    currentCurrency,
+  };
+};
+
+// Main function to handle all logic and rendering
+const renderOilCollections = async (currentPageUrl = `${apiUrl}/oil_collections`, setPage = null) => {
+  let companies = null;
+  let loading = true;
+  let error = null;
 
   const fetchCompanies = async (url) => {
     try {
-      setLoading(true);
       const token = Cookies.get("luxamToken");
-
       const response = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      // Prepare data to include nested fields with fallbacks
-      const processedData = response.data.data.map((item) => ({
-        ...item,
-        vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-",
-        driver: item.vehicle_driver?.driver?.name || "-",
-        company: item.company_branch?.company?.name || "-",
-        branch: item.company_branch?.branch_name || "-",
-      }));
+      // Prepare data to include nested fields with fallbacks and currency conversion
+      const processedData = response.data.data.map((item) => {
+        const rawPrice = item.price || 0;
+        const { convertedValue: convertedPrice, currentCurrency } = convertCurrency(rawPrice);
+        return {
+          ...item,
+          vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-",
+          driver: item.vehicle_driver?.driver?.name || "-",
+          company: item.company_branch?.company?.name || "-",
+          branch: item.company_branch?.branch_name || "-",
+          price: rawPrice
+            ? `${convertedPrice} ${currentCurrency}`
+            : "-",
+        };
+      });
 
-      setCompanies({ ...response.data, data: processedData });
+      companies = { ...response.data, data: processedData };
     } catch (err) {
-      setError("Failed to fetch companies");
+      error = "Failed to fetch companies";
       console.error(err);
     } finally {
-      setLoading(false);
+      loading = false;
     }
   };
 
-  useEffect(() => {
-    fetchCompanies(currentPageUrl);
-  }, [currentPageUrl]);
-
-  if (loading) return <Loading />;
-  if (error) return <p>{error}</p>;
+  // Fetch data initially or for pagination
+  await fetchCompanies(currentPageUrl);
 
   // Updated column definitions with the requested order
   const columnDefinitions = [
@@ -68,15 +86,19 @@ const Page = () => {
 
   const handleNextPage = () => {
     if (companies?.next_page_url) {
-      setCurrentPageUrl(companies.next_page_url);
+      renderOilCollections(companies.next_page_url, setPage);
     }
   };
 
   const handlePreviousPage = () => {
     if (companies?.prev_page_url) {
-      setCurrentPageUrl(companies.prev_page_url);
+      renderOilCollections(companies.prev_page_url, setPage);
     }
   };
+
+  // Return JSX based on current state
+  if (loading) return <Loading />;
+  if (error) return <p>{error}</p>;
 
   return (
     <div className="px-4 sm:px-8 py-6 hide-scrollbar">
@@ -88,13 +110,29 @@ const Page = () => {
         <Table
           data={companies}
           columns={columnDefinitions}
-          view={"oilCollectionScheduling"}
+          view="oilCollectionScheduling"
           onNextPage={handleNextPage}
           onPreviousPage={handlePreviousPage}
         />
       </div>
     </div>
   );
+};
+
+// Wrapper component to trigger the initial render
+const Page = () => {
+  const [pageContent, setPageContent] = useState(null);
+
+  const setPage = (content) => {
+    setPageContent(content);
+  };
+
+  // Initial render
+  if (!pageContent) {
+    renderOilCollections(apiUrl + "/oil_collections", setPage).then(setPage);
+  }
+
+  return pageContent;
 };
 
 export default Page;

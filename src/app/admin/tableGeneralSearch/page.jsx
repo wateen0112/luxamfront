@@ -1,17 +1,49 @@
 "use client";
-import React, { useEffect, useState } from "react";
+
+import React from "react";
 import Table from "../../../components/tableComponents/Table";
+import Cookies from "js-cookie";
 
-const Page = () => {
-  const [tablesData, setTablesData] = useState({});
+const convertCurrency = (aedValue) => {
+  const exchangeRates = {
+    USD: 0.2723, // 1 AED = 0.2723 USD
+    EUR: 0.2510, // 1 AED = 0.2510 EUR
+    AED: 1,      // 1 AED = 1 AED (no conversion)
+  };
 
-  useEffect(() => {
-    // جلب البيانات من localStorage بعد تحميل الصفحة
-    const data = localStorage.getItem("searchResults");
-    if (data) {
-      setTablesData(JSON.parse(data));
+  const currentCurrency = Cookies.get("currency") || "AED";
+  const convertedValue = aedValue && !isNaN(aedValue)
+    ? (aedValue * exchangeRates[currentCurrency]).toFixed(2)
+    : 0;
+
+  return {
+    convertedValue,
+    currentCurrency,
+  };
+};
+
+// Main function to handle all logic and rendering
+const renderSearchResults = (setPage = null) => {
+  let tablesData = {};
+
+  // Fetch data from localStorage
+  const data = localStorage.getItem("searchResults");
+  if (data) {
+    tablesData = JSON.parse(data);
+  }
+
+  // Process price fields to show only current currency
+  Object.keys(tablesData).forEach((key) => {
+    if (tablesData[key] && Array.isArray(tablesData[key])) {
+      tablesData[key] = tablesData[key].map((item) => {
+        if (item.price) {
+          const { convertedValue, currentCurrency } = convertCurrency(item.price);
+          return { ...item, price: `${convertedValue} ${currentCurrency}` };
+        }
+        return item;
+      });
     }
-  }, []);
+  });
 
   const columnDefinitions = {
     instant_collections: [
@@ -60,9 +92,10 @@ const Page = () => {
     requests: "requests",
   };
 
-  // التحقق مما إذا كانت جميع البيانات فارغة
+  // Check if all data is empty
   const isEmpty = Object.values(tablesData).every((data) => data?.length === 0);
 
+  // Render JSX
   return (
     <div className="px-4 sm:px-8 py-6 hide-scrollbar flex flex-col items-center justify-center">
       <p className="text-xl sm:text-2xl font-bold text-[#17a3d7] self-start">
@@ -94,6 +127,22 @@ const Page = () => {
       )}
     </div>
   );
+};
+
+// Wrapper component to trigger the initial render
+const Page = () => {
+  const [pageContent, setPageContent] = React.useState(null);
+
+  const setPage = (content) => {
+    setPageContent(content);
+  };
+
+  // Initial render
+  if (!pageContent) {
+    setPage(renderSearchResults());
+  }
+
+  return pageContent;
 };
 
 export default Page;

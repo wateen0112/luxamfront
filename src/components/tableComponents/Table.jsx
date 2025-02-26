@@ -153,13 +153,13 @@ const Table = ({
                       {column.key === "action" ? (
                         <>
                           <button
-                            className={`p-2 text-yellow-500 hover:bg-yellow-100 hover:rounded ${
+                            className={`p-2 text-blue-500 hover:bg-yellow-100 hover:rounded ${
                               deleteApi ? "border-r" : ""
                             }`}
                             title="Edit"
                           >
                             <Link href={`/admin/${view}/update/${item.id}`}>
-                              <AiOutlineEdit size={20} />
+                            <AiOutlineEye size={20} />
                             </Link>
                           </button>
                           {deleteApi && (

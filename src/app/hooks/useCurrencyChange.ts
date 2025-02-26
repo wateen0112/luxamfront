@@ -21,7 +21,7 @@ const useCurrencyConversion = (aedValue) => {
   // Convert the AED value to the current currency
   const convertCurrency = useCallback((value, currency) => {
     if (!value || isNaN(value)) return 0;
-    return value * exchangeRates[currency];
+    return (value * exchangeRates[currency]).toFixed(2);
   }, [exchangeRates]);
 
   // Update converted value when aedValue or currency changes

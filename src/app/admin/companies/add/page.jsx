@@ -10,6 +10,7 @@ import useCurrencyConversion from "../../../../app/hooks/useCurrencyChange";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const AddCompanyPage = () => {
+  const  currencyConversion = useCurrencyConversion()
   const triggerNotification = useNotification();
   const router = useRouter();
 
@@ -223,7 +224,10 @@ const AddCompanyPage = () => {
               />
            <div>
 
-           <InputField
+         <div className="grid grid-cols-4   items-center  gap-3">
+      <div className={currency !=='AED'&&formData.unitPrice>0 ? 'col-span-3':'col-span-4'}>
+      <InputField
+         className="w-full"
                 label="Unit Price"
                 id="unitPrice"
                 type="number"
@@ -231,6 +235,12 @@ const AddCompanyPage = () => {
                 onChange={handleChange}
               />
 
+      </div>
+ {
+   currency !=='AED' && <span className="mt-8">{ currency + '  '+useCurrencyConversion(formData.unitPrice).convertedValue} </span>
+ }
+
+         </div>
            </div>
               <InputField
                 label="Contract Start At"
