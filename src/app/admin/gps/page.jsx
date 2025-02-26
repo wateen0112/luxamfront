@@ -1,13 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 
 // Main rendering function
 const renderGPSPage = (setPage = null) => {
   const handleIframeClick = () => {
     window.open("https://gps.yslootahtech.com", "_blank", "noopener,noreferrer");
   };
-
+useEffect(()=>{
+  window.open("https://gps.yslootahtech.com", "_blank", "noopener,noreferrer");
+},[])
   return (
     <div className="p-5 flex flex-col items-start space-y-4 w-full h-screen">
       <div className="w-full h-full relative">
