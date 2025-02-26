@@ -10,7 +10,7 @@ function Page() {
         <div className='mt-8 w-full h-full'>
           <iframe
             className='w-full h-full border-none'
-            src="http://gps.yslootahtech.com"
+            src="https://gps.yslootahtech.com"
             title="GPS"
           ></iframe>
         </div>
