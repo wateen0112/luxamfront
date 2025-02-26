@@ -1,10 +1,10 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-import { NotificationProvider } from "@/components/notifi/NotificationContext";
 import Aside from "@/components/Navigation/Aside";
 import Navbar from "@/components/Navigation/Navbar";
 import { ToastContainer } from "react-toastify";
+import { NotificationProvider } from "@/components/notifi/NotificationContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
