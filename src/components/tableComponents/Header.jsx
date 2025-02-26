@@ -4,7 +4,7 @@ import Link from "next/link";
 
 const Header = ({ link, exportFun, assign, handleDownload, setSearch }) => {
   const [searchValue, setSearchValue] = useState(""); // حالة لتخزين القيمة المدخلة في البحث
-
+  
   const handleSearch = () => {
     if (setSearch) {
       setSearch(searchValue); // استدعاء دالة setSearch وتمرير القيمة المدخلة

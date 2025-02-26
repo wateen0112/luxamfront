@@ -28,18 +28,58 @@ const Page = () => {
         },
       });
 
-      // تجهيز البيانات لتضمين user.name كـ user-name
-      const processedData = response.data.data.map((item) => ({
-        ...item,
-        company: item.company?.name || "-", // استخدم "N/A" إذا كان الحقل غير موجود
-        branch: item.company_branch?.branch_name || "-", // استخدم "N/A" إذا كان الحقل غير موجود
-        vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-", // استخدم "N/A" إذا كان الحقل غير موجود
-        driver: item.vehicle_driver?.driver?.name || "-", // استخدم "N/A" إذا كان الحقل غير موجود
-      }));
-
-      setCompanies({ ...response.data, data: processedData });
+      // Check the response structure and adapt
+      let processedData;
+      if (response.data.instant_collection) {
+        // If the response contains a single instant_collection object
+        processedData = [
+          {
+            ...response.data.instant_collection,
+            company: response.data.instant_collection.company?.name || "-",
+            branch: response.data.instant_collection.company_branch?.branch_name || "-",
+            vehicle: response.data.instant_collection.vehicle_driver?.vehicle?.vehicle_number || "-",
+            driver: response.data.instant_collection.vehicle_driver?.driver?.name || "-",
+            payment_type: response.data.instant_collection.payment_type || "-", // Use payment_type from instant_collection
+          },
+        ];
+        setCompanies({
+          data: processedData,
+          current_page: 1,
+          last_page: 1,
+          next_page_url: null,
+          prev_page_url: null, // Mock pagination for a single item
+        });
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        // If the response is paginated with a data array (like oil collections)
+        processedData = response.data.data.map((item) => ({
+          ...item,
+          company: item.company?.name || "-",
+          branch: item.company_branch?.branch_name || "-",
+          vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-",
+          driver: item.vehicle_driver?.driver?.name || "-",
+          payment_type: item.payment_type || "-", // Use payment_type from the item
+        }));
+        setCompanies({ ...response.data, data: processedData });
+      } else {
+        // If the response is an array directly (without pagination)
+        processedData = (response.data || []).map((item) => ({
+          ...item,
+          company: item.company?.name || "-",
+          branch: item.company_branch?.branch_name || "-",
+          vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-",
+          driver: item.vehicle_driver?.driver?.name || "-",
+          payment_type: item.payment_type || "-", // Use payment_type from the item
+        }));
+        setCompanies({
+          data: processedData,
+          current_page: 1,
+          last_page: 1,
+          next_page_url: null,
+          prev_page_url: null, // Mock pagination for a flat array
+        });
+      }
     } catch (err) {
-      setError("Failed to fetch companies");
+      setError("Failed to fetch instant collections");
       console.error(err);
     } finally {
       setLoading(false);
@@ -60,7 +100,7 @@ const Page = () => {
     { key: "payment_type", label: "Payment Type" },
     { key: "vehicle", label: "Vehicle" },
     { key: "driver", label: "Driver" },
-    { key: "customer_name", label: "Customer name" },
+    { key: "customer_name", label: "Customer Name" },
     { key: "quantity", label: "Quantity" },
     { key: "price", label: "Price" },
     { key: "created_at", label: "Created at", type: "date" },

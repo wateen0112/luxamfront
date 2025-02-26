@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import userIcon from "/public/images/userIcon.svg";
-import BarChart from "@/components/charts/BarChart";
-import DoughnutChart from "@/components/charts/DoughnutChart";
-import LineChart from "@/components/charts/LineChart";
-import StoreCard from "@/components/charts/StoreCard";
-import Loading from "@/components/Loading";
+import BarChart from "../../../components/charts/BarChart"
+import DoughnutChart from "../../../components/charts/DoughnutChart";
+import LineChart from "../../../components/charts/LineChart";
+import StoreCard from "../../../components/charts/StoreCard";
+import Loading from "../../../components/Loading";
 import axios from "axios";
 import Cookies from "js-cookie";
 import {
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select";
+} from "../../../components/ui/select";
 import { Filter } from "lucide-react";
 import {
   FaUser,
@@ -28,6 +28,7 @@ import {
   FaGasPump,
 } from "react-icons/fa";
 
+const unit  =Cookies.get("unit") || "Liter"
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 const convertToKg = (value)=>value*.92
 // Stat Card Component
@@ -88,8 +89,8 @@ const Page = () => {
       icon: <FaUser className="text-[#17a3d7]" size={27} />, // رمز المستخدم
     },
     {
-      title: "Total Kgs Today",
-      value:convertToKg( data?.today_liters) ?? "-",
+      title: unit ==='Liter'?  "Total LItters Today" :"Total Kgs Today",
+      value:unit ==='Liter'?convertToKg( data?.today_liters):data?.today_liters ?? "-",
       icon: <FaTint className="text-[#17a3d7]" size={27} />, // رمز قطرة ماء يرمز للّترات
     },
     {
@@ -123,8 +124,8 @@ const Page = () => {
       icon: <FaBoxes className="text-[#17a3d7]" size={27} />, // صناديق ترمز للعمليات أو المعالجة
     },
     {
-      title: "Total Processing Kgs",
-      value: convertToKg(data?.total_processing_liters) ?? "-",
+      title: unit==='Liter'? "Total Processing Liters":"Total Processing Kgs",
+      value: unit=='Liter'?convertToKg(data?.total_processing_liters):data?.total_processing_liters ?? "-",
       icon: <FaGasPump className="text-[#17a3d7]" size={27} />, // مضخة وقود ترمز للّترات المعالجة
     },
   ];
@@ -137,12 +138,16 @@ const Page = () => {
         labels: ["Oil Collections", "Requests", "Instant Collections"],
         dataset: [
           {
-            label: "Kgs",
-            data: [
-             convertToKg( data?.monthly_collected_liters?.total_oil_collections) ?? 0,
-             convertToKg( data?.monthly_collected_liters?.total_requests )?? 0,
-           convertToKg(    data?.monthly_collected_liters?.total_instant_collections )?? 0,
-            ],
+            label:unit==="Liter" ? "Liters": "Kgs",
+            data: unit==="Liter"?[
+               data?.monthly_collected_liters?.total_oil_collections ?? 0,
+               data?.monthly_collected_liters?.total_requests ?? 0,
+                data?.monthly_collected_liters?.total_instant_collections ?? 0,
+             ]:[
+              convertToKg( data?.monthly_collected_liters?.total_oil_collections) ?? 0,
+              convertToKg( data?.monthly_collected_liters?.total_requests )?? 0,
+            convertToKg(    data?.monthly_collected_liters?.total_instant_collections )?? 0,
+             ],
             backgroundColor: "rgba(54, 162, 235, 0.8)",
           },
         ],

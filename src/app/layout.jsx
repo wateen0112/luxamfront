@@ -4,6 +4,7 @@ import "./globals.css";
 import { NotificationProvider } from "@/components/notifi/NotificationContext";
 import Aside from "@/components/Navigation/Aside";
 import Navbar from "@/components/Navigation/Navbar";
+import { ToastContainer } from "react-toastify";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,18 @@ export default function RootLayout({ children }) {
           <Aside />
           <div className="w-full ">
             <Navbar />
+            <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
             <NotificationProvider>{children}</NotificationProvider>
           </div>
         </main>

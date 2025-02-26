@@ -28,13 +28,13 @@ const Page = () => {
         },
       });
 
-      // تجهيز البيانات لتضمين user.name كـ user-name
+      // Prepare data to include nested fields with fallbacks
       const processedData = response.data.data.map((item) => ({
         ...item,
-        vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-", // استخدم "N/A" إذا كان الحقل غير موجود
-        driver: item.vehicle_driver?.driver?.name || "-", // استخدم "N/A" إذا كان الحقل غير موجود
-        company: item.company_branch?.company?.name || "-", // استخدم "N/A" إذا كان الحقل غير موجود
-        branch: item.company_branch?.branch_name || "-", // استخدم "N/A" إذا كان الحقل غير موجود
+        vehicle: item.vehicle_driver?.vehicle?.vehicle_number || "-",
+        driver: item.vehicle_driver?.driver?.name || "-",
+        company: item.company_branch?.company?.name || "-",
+        branch: item.company_branch?.branch_name || "-",
       }));
 
       setCompanies({ ...response.data, data: processedData });
@@ -53,17 +53,17 @@ const Page = () => {
   if (loading) return <Loading />;
   if (error) return <p>{error}</p>;
 
+  // Updated column definitions with the requested order
   const columnDefinitions = [
+    { key: "action", label: "Action" },
+    { key: "company", label: "Company" },
+    { key: "branch", label: "Company Branch" },
+    { key: "collected_liters", label: "Collected Liters" },
+    { key: "price", label: "Liters Price" },
     { key: "driver", label: "Driver" },
     { key: "vehicle", label: "Vehicle" },
-    { key: "day", label: "Day" },
-    { key: "company", label: "Company" },
-    { key: "branch", label: "Branch" },
-    { key: "created_at", label: "Created at", type: "date" },
     { key: "status", label: "Status" },
-    { key: "collected_liters", label: "Collected Liters" },
-    { key: "price", label: "Price" },
-    { key: "action", label: "Action" },
+    { key: "created_at", label: "Created", type: "date" },
   ];
 
   const handleNextPage = () => {
@@ -89,7 +89,6 @@ const Page = () => {
           data={companies}
           columns={columnDefinitions}
           view={"oilCollectionScheduling"}
-          // deleteApi={"companies"}
           onNextPage={handleNextPage}
           onPreviousPage={handlePreviousPage}
         />
