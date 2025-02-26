@@ -6,7 +6,7 @@ import Cookies from "js-cookie";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import { useNotification } from "@/components/notifi/NotificationContext";
+import { useNotification } from "../../../../../components/notifi/NotificationContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 

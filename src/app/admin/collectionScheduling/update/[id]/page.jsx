@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, Check } from "lucide-react";
-import MapSchedules from "@/components/schedules/MapSchedules";
+import MapSchedules from "../../../../../components/schedules/MapSchedules";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter, useParams } from "next/navigation";
-import { useNotification } from "@/components/notifi/NotificationContext";
+import { useNotification } from "../../../../../components/notifi/NotificationContext";
+
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 

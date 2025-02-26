@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useParams } from "next/navigation";
-import Loading from "@/components/Loading";
+import Loading from "../../../../../components/Loading";
 import Link from "next/link";
 import { FaTrash, FaPlus } from "react-icons/fa";
 

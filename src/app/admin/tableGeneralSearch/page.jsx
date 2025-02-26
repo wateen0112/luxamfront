@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import Table from "@/components/tableComponents/Table";
+import Table from "../../../components/tableComponents/Table";
 
 const Page = () => {
   const [tablesData, setTablesData] = useState({});

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
-import { useNotification } from "@/components/notifi/NotificationContext";
+import { useNotification } from "../../../../components/notifi/NotificationContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 

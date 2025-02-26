@@ -9,11 +9,11 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select";
+} from "../../../../../components/ui/select";
 import Cookies from "js-cookie";
-import RequestCard from "@/components/RequestPage/RequestCard";
-import AddressCard from "@/components/RequestPage/AddressCard";
-import Loading from "@/components/Loading";
+import RequestCard from "../../../../../components/RequestPage/RequestCard";
+import AddressCard from "../../../../../components/RequestPage/AddressCard";
+import Loading from "../../../../../components/Loading";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 

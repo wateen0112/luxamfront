@@ -1,7 +1,12 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    // "baseUrl": "src/",
+    "jsx": "react",
     "paths": {
-      "@/*": ["./src/*"]
+      "~*": [ "src/*" ],
+     
+      "@/*": [ "src/*" ], // Add this module's alias in parent
     }
-  }
+  },
 }

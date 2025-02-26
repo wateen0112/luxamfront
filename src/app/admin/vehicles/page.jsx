@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Header from "@/components/tableComponents/Header";
-import Table from "@/components/tableComponents/Table";
+import Header from "../../../components/tableComponents/Header";
+import Table from "../../../components/tableComponents/Table";
 import Cookies from "js-cookie";
 import axios from "axios";
-import Loading from "@/components/Loading";
+import Loading from "../../../components/Loading";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 

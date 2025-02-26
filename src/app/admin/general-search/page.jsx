@@ -12,10 +12,10 @@ import {
   FaStopCircle,
 } from "react-icons/fa";
 import { useState, useEffect } from "react";
-import General from "@/components/generalSearch/General";
+import General from "../../../components/generalSearch/General";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { useNotification } from "@/components/notifi/NotificationContext";
+import { useNotification } from "../../../components/notifi/NotificationContext";
 import { useRouter } from "next/navigation";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;

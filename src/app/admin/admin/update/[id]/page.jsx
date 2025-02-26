@@ -3,8 +3,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter, useParams } from "next/navigation";
-import { useNotification } from "@/components/notifi/NotificationContext";
-import Loading from "@/components/Loading";
+import { useNotification } from "../../../../../components/notifi/NotificationContext";
+
+import Loading from "../../../../../components/Loading";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
