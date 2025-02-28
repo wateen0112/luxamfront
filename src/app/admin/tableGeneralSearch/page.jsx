@@ -1,49 +1,24 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Table from "../../../components/tableComponents/Table";
-import Cookies from "js-cookie";
 
-const convertCurrency = (aedValue) => {
-  const exchangeRates = {
-    USD: 0.2723, // 1 AED = 0.2723 USD
-    EUR: 0.2510, // 1 AED = 0.2510 EUR
-    AED: 1,      // 1 AED = 1 AED (no conversion)
-  };
+const Page = () => {
+  const [tablesData, setTablesData] = useState({});
+  const [isMounted, setIsMounted] = useState(false);
 
-  const currentCurrency = Cookies.get("currency") || "AED";
-  const convertedValue = aedValue && !isNaN(aedValue)
-    ? (aedValue * exchangeRates[currentCurrency]).toFixed(2)
-    : 0;
+  useEffect(() => {
+    // Mark the component as mounted on the client
+    setIsMounted(true);
 
-  return {
-    convertedValue,
-    currentCurrency,
-  };
-};
-
-// Main function to handle all logic and rendering
-const renderSearchResults = (setPage = null) => {
-  let tablesData = {};
-
-  // Fetch data from localStorage
-  const data = localStorage.getItem("searchResults");
-  if (data) {
-    tablesData = JSON.parse(data);
-  }
-
-  // Process price fields to show only current currency
-  Object.keys(tablesData).forEach((key) => {
-    if (tablesData[key] && Array.isArray(tablesData[key])) {
-      tablesData[key] = tablesData[key].map((item) => {
-        if (item.price) {
-          const { convertedValue, currentCurrency } = convertCurrency(item.price);
-          return { ...item, price: `${convertedValue} ${currentCurrency}` };
-        }
-        return item;
-      });
+    // Fetch data from localStorage only on the client
+    if (typeof window !== "undefined") {
+      const data = localStorage.getItem("searchResults");
+      if (data) {
+        setTablesData(JSON.parse(data));
+      }
     }
-  });
+  }, []);
 
   const columnDefinitions = {
     instant_collections: [
@@ -92,10 +67,13 @@ const renderSearchResults = (setPage = null) => {
     requests: "requests",
   };
 
-  // Check if all data is empty
+  // Only render content after mounting to ensure localStorage is available
+  if (!isMounted) {
+    return null; // Or a loading spinner if preferred
+  }
+
   const isEmpty = Object.values(tablesData).every((data) => data?.length === 0);
 
-  // Render JSX
   return (
     <div className="px-4 sm:px-8 py-6 hide-scrollbar flex flex-col items-center justify-center">
       <p className="text-xl sm:text-2xl font-bold text-[#17a3d7] self-start">
@@ -127,22 +105,6 @@ const renderSearchResults = (setPage = null) => {
       )}
     </div>
   );
-};
-
-// Wrapper component to trigger the initial render
-const Page = () => {
-  const [pageContent, setPageContent] = React.useState(null);
-
-  const setPage = (content) => {
-    setPageContent(content);
-  };
-
-  // Initial render
-  if (!pageContent) {
-    setPage(renderSearchResults());
-  }
-
-  return pageContent;
 };
 
 export default Page;

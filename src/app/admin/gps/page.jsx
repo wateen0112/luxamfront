@@ -15,7 +15,7 @@ const renderGPSPage = (setPage = null) => {
         <div className="mt-8 w-full h-full relative">
           <iframe
             className="w-full h-full border-none"
-            src="gps.yslootahtech.com"
+            src="https://gps.yslootahtech.com"
             title="GPS"
             allowFullScreen
           ></iframe>
@@ -40,13 +40,7 @@ const Page = () => {
     setPageContent(content);
   };
 
-  if (!pageContent && !hasOpened.current) {
-    // Open the URL in a new tab on initial render
-    window.open("https://gps.yslootahtech.com", "_blank", "noopener,noreferrer");
-    hasOpened.current = true; // Prevent reopening on subsequent renders
-    setPage(renderGPSPage());
-  }
-
+  
   return pageContent;
 };
 
