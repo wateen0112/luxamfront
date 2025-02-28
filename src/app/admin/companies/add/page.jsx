@@ -1,16 +1,16 @@
 "use client";
+
 import React, { useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { useNotification } from "../../../../components/notifi/NotificationContext";
-
 import useCurrencyConversion from "../../../../app/hooks/useCurrencyChange";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const AddCompanyPage = () => {
-  const  currencyConversion = useCurrencyConversion()
+  const currencyConversion = useCurrencyConversion();
   const triggerNotification = useNotification();
   const router = useRouter();
 
@@ -31,12 +31,13 @@ const AddCompanyPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
- const currency= Cookies.get('currency')
+  const currency = Cookies.get("currency");
+
   const handleChange = (e) => {
-    const { id, value, type, checked } = e.target;
+    const { id, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
-      [id]: type === "radio" ? value : value, // Handle radio buttons
+      [id]: value,
     }));
   };
 
@@ -66,7 +67,7 @@ const AddCompanyPage = () => {
       "contractStatus",
       "paymentType",
     ];
- 
+
     // Only require contract dates if payment type is "contract"
     if (formData.paymentType === "contract") {
       requiredFields.push("contractStartAt", "contractEndAt");
@@ -138,14 +139,12 @@ const AddCompanyPage = () => {
       });
     } catch (err) {
       triggerNotification(
-        err.response?.data?.email ||
-          "An error occurred while adding the company.",
+        err.response?.data?.email || "An error occurred while adding the company.",
         "error"
       );
       console.log(err);
       setError(
-        err.response?.data?.email ||
-          "An error occurred while adding the company."
+        err.response?.data?.email || "An error occurred while adding the company."
       );
     } finally {
       setLoading(false);
@@ -161,10 +160,7 @@ const AddCompanyPage = () => {
       </header>
 
       <main className="mt-10">
-        <form
-          onSubmit={handleSubmit}
-          className="grid md:grid-cols-2 md:gap-8 gap-6"
-        >
+        <form onSubmit={handleSubmit} className="grid md:grid-cols-2 md:gap-8 gap-6">
           {/* User Info Section */}
           <div className="col-span-2">
             <h2 className="text-xl font-semibold text-[#17a3d7] mb-4">
@@ -222,26 +218,23 @@ const AddCompanyPage = () => {
                 value={formData.company}
                 onChange={handleChange}
               />
-           <div>
-
-         <div className="grid grid-cols-4   items-center  gap-3">
-      <div className={currency !=='AED'&&formData.unitPrice>0 ? 'col-span-3':'col-span-4'}>
-      <InputField
-         className="w-full"
-                label="Unit Price"
-                id="unitPrice"
-                type="number"
-                value={formData.unitPrice}
-                onChange={handleChange}
-              />
-
-      </div>
- {
-   currency !=='AED' && <span className="mt-8">{ currency + '  '+useCurrencyConversion(formData.unitPrice).convertedValue} </span>
- }
-
-         </div>
-           </div>
+              <div>
+                <div className="grid grid-cols-4 items-center gap-3">
+                  <div className={currency !== "AED" && formData.unitPrice > 0 ? "col-span-3" : "col-span-4"}>
+                    <InputField
+                      className="w-full"
+                      label="Unit Price"
+                      id="unitPrice"
+                      type="number"
+                      value={formData.unitPrice}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  {currency !== "AED" && formData.unitPrice > 0 && (
+                    <span className="mt-8">{currency + " " + currencyConversion(formData.unitPrice).convertedValue}</span>
+                  )}
+                </div>
+              </div>
               <InputField
                 label="Contract Start At"
                 id="contractStartAt"
@@ -267,8 +260,9 @@ const AddCompanyPage = () => {
                   { value: "active", label: "Active" },
                   { value: "deactive", label: "Deactive" },
                 ]}
+                disabled={formData.paymentType === "cash"} // Disable when payment type is "cash"
               />
-              <RadioField
+              <SelectField
                 label="Payment Type"
                 id="paymentType"
                 value={formData.paymentType}
@@ -313,7 +307,7 @@ const InputField = ({ label, id, type, value, onChange, disabled }) => (
   </div>
 );
 
-const SelectField = ({ label, id, value, onChange, options }) => (
+const SelectField = ({ label, id, value, onChange, options, disabled }) => (
   <div>
     <label className="block font-medium text-gray-600" htmlFor={id}>
       {label} *
@@ -322,7 +316,10 @@ const SelectField = ({ label, id, value, onChange, options }) => (
       id={id}
       value={value}
       onChange={onChange}
-      className="input mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#17a3d7] focus:outline-none"
+      disabled={disabled} // Add disabled prop
+      className={`input mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#17a3d7] focus:outline-none ${
+        disabled ? "bg-gray-100 cursor-not-allowed" : ""
+      }`}
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>
@@ -330,30 +327,6 @@ const SelectField = ({ label, id, value, onChange, options }) => (
         </option>
       ))}
     </select>
-  </div>
-);
-
-const RadioField = ({ label, id, value, onChange, options }) => (
-  <div>
-    <label className="block font-medium text-gray-600" htmlFor={id}>
-      {label} *
-    </label>
-    <div className="flex gap-4 mt-1">
-      {options.map((option) => (
-        <label key={option.value} className="flex items-center gap-2">
-          <input
-            type="radio"
-            id={id}
-            name={id}
-            value={option.value}
-            checked={value === option.value}
-            onChange={onChange}
-            className="w-4 h-4 text-[#17a3d7] focus:ring-[#17a3d7]"
-          />
-          <span className="text-gray-600">{option.label}</span>
-        </label>
-      ))}
-    </div>
   </div>
 );
 

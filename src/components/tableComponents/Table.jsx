@@ -5,10 +5,10 @@ import { AiOutlineEdit, AiOutlineDelete, AiOutlineEye } from "react-icons/ai";
 import { FiArrowRight, FiArrowLeft } from "react-icons/fi";
 import Link from "next/link";
 import Cookies from "js-cookie";
-import { AiOutlineArrowUp, AiOutlineArrowDown } from "react-icons/ai"; // إضافة أيقونات الأسهم
+import { AiOutlineArrowUp, AiOutlineArrowDown } from "react-icons/ai";
 import { useNotification } from "../notifi/NotificationContext";
-import { confirmAlert } from "react-confirm-alert"; // استيراد مكتبة التأكيد
-import "react-confirm-alert/src/react-confirm-alert.css"; // استيراد الـ CSS الخاص بالمكتبة
+import { confirmAlert } from "react-confirm-alert";
+import "react-confirm-alert/src/react-confirm-alert.css";
 
 const Table = ({
   data,
@@ -19,8 +19,8 @@ const Table = ({
   view,
 }) => {
   const [tableData, setTableData] = useState([]);
-  const [sortColumn, setSortColumn] = useState(null); // لتخزين العمود الذي سيتم فرزه
-  const [sortOrder, setSortOrder] = useState("asc"); // لتخزين ترتيب الفرز (تصاعدي أو تنازلي)
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortOrder, setSortOrder] = useState("asc");
   const triggerNotification = useNotification();
 
   useEffect(() => {
@@ -38,10 +38,8 @@ const Table = ({
       return;
     }
 
-    // استخدام مكتبة react-confirm-alert لعرض نافذة التأكيد
     confirmAlert({
-      message:
-        "Are you sure you want to delete this? This action cannot be undone",
+      message: "Are you sure you want to delete this? This action cannot be undone",
       buttons: [
         {
           label: "Yes",
@@ -56,7 +54,6 @@ const Table = ({
               });
               if (!response.ok) {
                 const errorData = await response.json();
-                console.log(errorData);
                 triggerNotification(
                   `Error deleting order: ${
                     errorData?.error ||
@@ -65,37 +62,39 @@ const Table = ({
                   }`,
                   "error"
                 );
-                // alert(`Error deleting order: ${errorData.error || "Failed to delete the order."}`);
-                throw new Error(
-                  errorData.error || "Failed to delete the order."
-                );
+                throw new Error(errorData.error || "Failed to delete the order.");
               }
-              triggerNotification("deleted successfully.", "success");
-              // alert("Order deleted successfully.");
+              triggerNotification("Deleted successfully.", "success");
               setTableData((prevData) =>
                 prevData.filter((item) => item.id !== id)
               );
             } catch (error) {
-              // يمكن إضافة معالجة إضافية هنا
+              // Additional error handling can be added here
             }
           },
         },
         {
           label: "No",
-          onClick: () => {}, // إغلاق النافذة إذا اختار "لا"
+          onClick: () => {}, // Close the confirmation if "No" is clicked
         },
       ],
     });
   };
 
+  // Custom function to format date as "d m y" (e.g., "24 Feb 2025")
   const formatDate = (dateString) => {
+    if (!dateString) return "-";
     const date = new Date(dateString);
-    return date.toLocaleDateString(); // التنسيق الذي تريده مثل "2025-01-01"
+    if (isNaN(date.getTime())) return "-"; // Handle invalid dates
+    const day = date.getDate().toString().padStart(2, "0"); // Ensure 2 digits (e.g., "24")
+    const month = date.toLocaleString("en", { month: "short" }); // e.g., "Feb"
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
   };
 
   const handleSort = (columnKey) => {
     const newSortOrder =
-      sortColumn === columnKey && sortOrder === "asc" ? "desc" : "asc"; // تغيير الترتيب
+      sortColumn === columnKey && sortOrder === "asc" ? "desc" : "asc";
     setSortColumn(columnKey);
     setSortOrder(newSortOrder);
 
@@ -159,7 +158,7 @@ const Table = ({
                             title="Edit"
                           >
                             <Link href={`/admin/${view}/update/${item.id}`}>
-                            <AiOutlineEye size={20} />
+                              <AiOutlineEye size={20} />
                             </Link>
                           </button>
                           {deleteApi && (

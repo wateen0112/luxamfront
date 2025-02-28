@@ -17,7 +17,7 @@ import {
   FiArrowLeft,
   FiArrowRight,
 } from "react-icons/fi";
-import { menuSections } from "./data";
+import { filteredMenuSections } from "./data"; // Updated import
 
 const MenuItem = ({
   href,
@@ -35,14 +35,13 @@ const MenuItem = ({
     className={`flex items-center px-5 py-3 relative ${
       isActive || isParentActive ? "bg-[#de8945] rounded-md text-white" : ""
     }`}
-    onClick={onClick} // التأكد من تشغيل onClick عند الحاجة
+    onClick={onClick}
   >
     {(isActive || isParentActive) && !isCollapsed && (
       <span className="absolute -left-5 top-0 h-full w-1 bg-[#de8945] rounded-r-md"></span>
     )}
 
     {subtitle ? (
-      // إذا كان هناك subtitle، لا يكون رابطًا
       <div
         className="flex items-center w-full cursor-pointer"
         onClick={toggleOpen}
@@ -69,7 +68,6 @@ const MenuItem = ({
         )}
       </div>
     ) : (
-      // إذا لم يكن هناك subtitle، يكون رابطًا قابلًا للنقر
       <Link href={href || ""} className="flex items-center w-full">
         <Image
           src={icon}
@@ -91,7 +89,7 @@ const Aside = () => {
   const [openSections, setOpenSections] = useState({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isLoadingVisible, setIsLoadingVisible] = useState(false); // إضافة حالة التحميل
+  const [isLoadingVisible, setIsLoadingVisible] = useState(false);
 
   const toggleSection = (section) => {
     setOpenSections((prev) => ({
@@ -102,6 +100,10 @@ const Aside = () => {
 
   const handleLogout = () => {
     Cookies.remove("luxamToken");
+    Cookies.remove("first_name");
+    Cookies.remove("last_name");
+    Cookies.remove("permissions");
+    Cookies.remove("email");
     router.push("/");
   };
 
@@ -110,28 +112,23 @@ const Aside = () => {
   useEffect(() => {
     setIsClient(true);
 
-    // تحقق من وجود عنصر التحميل في DOM
     const checkLoadingVisibility = () => {
       const loadingElement = document.querySelector("#loading");
       setIsLoadingVisible(!!loadingElement);
     };
 
-    // تحقق من حالة التحميل عند التحميل
     checkLoadingVisibility();
-
-    // تابع تغير حالة DOM بشكل مستمر إذا كان loading موجود
     const interval = setInterval(checkLoadingVisibility, 100);
 
-    return () => clearInterval(interval); // تنظيف التابع عند فك التعلق
+    return () => clearInterval(interval);
   }, []);
 
   if (!isClient || pathname === "/" || isLoadingVisible) {
-    return null; // إخفاء الشريط الجانبي إذا كانت الصفحة الرئيسية أو في حالة التحميل
+    return null;
   }
 
   return (
     <div className="relative select-none">
-      {/* زر القائمة للأجهزة الصغيرة */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="md:hidden fixed top-4 left-4 z-40 p-2 bg-[#de8945] text-white rounded-full shadow-lg"
@@ -139,25 +136,17 @@ const Aside = () => {
         {isSidebarOpen ? <FiX size={24} /> : <FiMenu size={24} />}
       </button>
 
-      {/* الشريط الجانبي */}
       <AnimatePresence>
-        {(isSidebarOpen ||
-          (typeof window !== "undefined" && window.innerWidth >= 768)) && (
+        {(isSidebarOpen || (typeof window !== "undefined" && window.innerWidth >= 768)) && (
           <motion.aside
             className={`fixed md:sticky mt- inset-y-0 left-0 ${
               isCollapsed ? "w-[80px]" : "w-[300px]"
             } bg-[#fdf2eb] overflow-y-auto hide-scrollbar z-30 shadow-lg md:shadow-none tracking-tight h-screen md:duration-200`}
-            initial={{
-              x:
-                typeof window !== "undefined" && window.innerWidth >= 768
-                  ? 0
-                  : "-100%",
-            }}
+            initial={{ x: typeof window !== "undefined" && window.innerWidth >= 768 ? 0 : "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            {/* شعار */}
             <div className="flex items-center justify-center mt-4">
               {!isCollapsed ? (
                 <>
@@ -172,45 +161,31 @@ const Aside = () => {
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="hidden md:block bg-[#de8945] absolute right-[10px] text-white rounded-full p-1 shadow-lg"
                   >
-                    {isCollapsed ? (
-                      <FiArrowRight size={18} />
-                    ) : (
-                      <FiArrowLeft size={20} />
-                    )}
+                    {isCollapsed ? <FiArrowRight size={18} /> : <FiArrowLeft size={20} />}
                   </button>
                 </>
               ) : (
                 <button
                   onClick={() => setIsCollapsed(!isCollapsed)}
-                  className="hidden md:block  bg-[#de8945] text-white rounded-full p-1 shadow-lg mb-"
+                  className="hidden md:block bg-[#de8945] text-white rounded-full p-1 shadow-lg mb-"
                 >
-                  {isCollapsed ? (
-                    <FiArrowRight size={18} />
-                  ) : (
-                    <FiArrowLeft size={18} />
-                  )}
+                  {isCollapsed ? <FiArrowRight size={18} /> : <FiArrowLeft size={18} />}
                 </button>
               )}
             </div>
-            {!isCollapsed && (
-              <hr className="mt-3 mb-3 border-t border-gray-300" />
-            )}
+            {!isCollapsed && <hr className="mt-3 mb-3 border-t border-gray-300" />}
 
-            {/* أقسام القائمة */}
-            {menuSections.map(({ title, items }) => (
+            {/* Updated to use filteredMenuSections */}
+            {filteredMenuSections.map(({ title, items }) => (
               <div key={title}>
                 {!isCollapsed && (
                   <h1 className="px-6 mt-4 font-semibold text-[#17a3d7] text-lg">
                     {title}
                   </h1>
                 )}
-                <ul
-                  className={`mt-1 ${isCollapsed ? "px-2 mt-3" : "px-6"} mb-3`}
-                >
+                <ul className={`mt-1 ${isCollapsed ? "px-2 mt-3" : "px-6"} mb-3`}>
                   {items.map(({ href, icon, label, subtitle }) => {
-                    const isParentActive = subtitle?.some(
-                      (subItem) => subItem.href === pathname
-                    );
+                    const isParentActive = subtitle?.some((subItem) => subItem.href === pathname);
                     return (
                       <React.Fragment key={label}>
                         <MenuItem
@@ -238,9 +213,7 @@ const Aside = () => {
                                   <Link
                                     href={subItem.href}
                                     className={`text-[15px] font-semibold ${
-                                      subItem.href === pathname
-                                        ? "text-[#de8945]"
-                                        : "text-gray-600"
+                                      subItem.href === pathname ? "text-[#de8945]" : "text-gray-600"
                                     }`}
                                   >
                                     {subItem.label}
@@ -257,26 +230,14 @@ const Aside = () => {
               </div>
             ))}
 
-            {/* إعدادات وتسجيل الخروج */}
             <ul
               className={`sticky bottom-0 bg-[#fdf2eb] border-t border-gray-300 pb-11 pt-3 ${
                 isCollapsed ? "px-3" : "px-5"
               }`}
             >
-              {/* <MenuItem
-                href="/admin/settings"
-                icon={SettingIcon}
-                label="Settings"
-                isActive={pathname === "/admin/settings"}
-                isCollapsed={isCollapsed}
-              /> */}
-              <MenuItem
-                icon={LogoutIcon}
-                label="Logout"
-                onClick={handleLogout}
-                isActive={false}
-                isCollapsed={isCollapsed}
-              />
+              {/* Uncomment if needed */}
+              {/* <MenuItem href="/admin/settings" icon={SettingIcon} label="Settings" isActive={pathname === "/admin/settings"} isCollapsed={isCollapsed} /> */}
+              <MenuItem icon={LogoutIcon} label="Logout" onClick={handleLogout} isActive={false} isCollapsed={isCollapsed} />
             </ul>
           </motion.aside>
         )}

@@ -9,6 +9,33 @@ import Loading from "../../../components/Loading";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
+// Custom function to format date as "dd-mm-yyyy" (e.g., "25-02-2025")
+const formatDate = (dateString) => {
+  if (!dateString) return "Not specified";
+
+  // Fix malformed date strings like "2025-02-2500:00:00" by adding a space
+  let correctedDateString = dateString;
+  if (/^\d{4}-\d{2}-\d{2}\d{2}:\d{2}:\d{2}$/.test(dateString)) {
+    correctedDateString = dateString.replace(/(\d{4}-\d{2}-\d{2})(\d{2}:\d{2}:\d{2})/, "$1 $2");
+  }
+
+  // Parse the corrected date string into a Date object
+  const date = new Date(correctedDateString);
+
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    console.error("Invalid date:", dateString); // Log invalid dates for debugging
+    return "Not specified";
+  }
+
+  // Extract day, month, and year
+  const day = date.getDate().toString().padStart(2, "0"); // Ensure 2 digits (e.g., "25")
+  const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Months are 0-based, add 1 (e.g., "02")
+  const year = date.getFullYear();
+
+  return `${day}-${month}-${year}`;
+};
+
 const Page = () => {
   const [companies, setCompanies] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,6 +43,23 @@ const Page = () => {
   const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/companies`);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState(null);
+
+  const processCompanyData = (data) => {
+    // Check if data has a 'data' property (pagination response) or is an array
+    const companyList = data.data || data;
+
+    // Format dates in each company object
+    const formattedCompanies = companyList.map((company) => ({
+      ...company,
+      contract_start_at: formatDate(company.contract_start_at),
+      contract_end_at: formatDate(company.contract_end_at),
+      created_at: formatDate(company.created_at),
+      updated_at: formatDate(company.updated_at),
+    }));
+
+    // Return the original structure with formatted data
+    return data.data ? { ...data, data: formattedCompanies } : formattedCompanies;
+  };
 
   const fetchCompanies = async (url) => {
     try {
@@ -27,7 +71,9 @@ const Page = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      setCompanies(response.data);
+
+      const formattedResponse = processCompanyData(response.data);
+      setCompanies(formattedResponse);
     } catch (err) {
       setError("Failed to fetch companies");
       console.error(err);
@@ -37,7 +83,10 @@ const Page = () => {
   };
 
   const searchCompanies = async (searchTerm) => {
-    if (!searchTerm) return;
+    if (!searchTerm) {
+      setSearchResults(null); // Reset search results if search is cleared
+      return;
+    }
 
     try {
       setLoading(true);
@@ -50,8 +99,9 @@ const Page = () => {
         params: { search: searchTerm },
       });
 
-      console.log("Search results:", response.data);
-      setSearchResults(response.data);
+      const formattedResponse = processCompanyData(response.data);
+      console.log("Search results:", formattedResponse);
+      setSearchResults(formattedResponse);
     } catch (err) {
       setError("Failed to search companies");
       console.error(err);
@@ -65,9 +115,7 @@ const Page = () => {
   }, [currentPageUrl]);
 
   useEffect(() => {
-    if (search) {
-      searchCompanies(search);
-    }
+    searchCompanies(search);
   }, [search]);
 
   if (loading) return <Loading />;
@@ -75,52 +123,21 @@ const Page = () => {
 
   const columnDefinitions = [
     { key: "name", label: "Name" },
-    {
-      key: "contract_start_at",
-      label: "Start at",
-      render: (row) => (
-        <span>
-          {row.contract_start_at
-            ? new Date(row.contract_start_at).toLocaleDateString()
-            : "Not specified"}
-        </span>
-      ),
-    },
-    {
-      key: "contract_end_at",
-      label: "End at",
-      render: (row) => (
-        <span>
-          {row.contract_end_at
-            ? new Date(row.contract_end_at).toLocaleDateString()
-            : "Not specified"}
-        </span>
-      ),
-    },
+    { key: "contract_start_at", label: "Start At" },
+    { key: "contract_end_at", label: "End At" },
     { key: "contract_status", label: "Status" },
     {
       key: "payment_type",
       label: "Payment Type",
       render: (row) => (
         <span className="capitalize">
-          {row.contract_start_at || row.contract_end_at
-            ? "contract"
-            : row.payment_type || "Not specified"}
+          {row.payment_type || "Not specified"}
         </span>
       ),
     },
     { key: "documents", label: "Company Documents" },
-    {
-      key: "created_at",
-      label: "Created At",
-      render: (row) => (
-        <span>
-          {row.created_at
-            ? new Date(row.created_at).toLocaleDateString()
-            : "Not specified"}
-        </span>
-      ),
-    },
+    { key: "created_at", label: "Created At" },
+    { key: "updated_at", label: "Updated At" },
     { key: "action", label: "Action" },
   ];
 
@@ -148,7 +165,7 @@ const Page = () => {
         </p>
         <Header setSearch={setSearch} link="/admin/companies/add" />
         <Table
-          data={searchResults ? searchResults : companies}
+          data={searchResults || companies}
           columns={columnDefinitions}
           deleteApi={"companies"}
           onNextPage={handleNextPage}

@@ -1,13 +1,22 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { useNotification } from "../../../../components/notifi/NotificationContext";
-// import { useNotification } from "../../../../";
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
+// Function to convert snake_case to Title Case (e.g., "show_admins" → "Show Admins")
+const formatPermissionName = (name) => {
+  return name
+    .split("_") // Split by underscore
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize each word
+    .join(" "); // Join with spaces
+};
+
 const AddAdminPage = () => {
+  const [permissionsList, setPermissionsList] = useState([]);
   const triggerNotification = useNotification();
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -33,72 +42,39 @@ const AddAdminPage = () => {
     { label: "Confirm Password", name: "confirmPassword", type: "password" },
   ];
 
-  const permissionsList = [
-    { label: "View News", name: "view_news" },
-    { label: "Create Redeem Points", name: "create_redeem_points" },
-    { label: "Update Company Branches", name: "update_company_branches" },
-    { label: "Delete Vehicles", name: "delete_vehicles" },
-    { label: "View Vehicle Driver", name: "view_vehicle_driver" },
-    { label: "Delete Plants", name: "delete_plants" },
-    { label: "View Requests", name: "view_requests" },
-    { label: "Cancel Requests", name: "cancel_requests" },
-    { label: "Update Schedules", name: "update_schedules" },
-    { label: "Delete Companies", name: "delete_companies" },
-    { label: "Create Team Members", name: "create_team_members" },
-    { label: "Update Plants", name: "update_plants" },
-    { label: "Search Drivers", name: "search_drivers" },
-    { label: "Search News", name: "search_news" },
-    { label: "Create Cities", name: "create_cities" },
-    { label: "Update News", name: "update_news" },
-    { label: "Update Areas", name: "update_areas" },
-    { label: "Create Instant Collections", name: "create_instant_collections" },
-    { label: "Create Admins", name: "create_admins" },
-    { label: "View Oil Collections", name: "view_oil_collections" },
-    { label: "View Company Branches", name: "view_company_branches" },
-    { label: "Create Admin", name: "create_admin" },
-    { label: "View Statements", name: "view_statements" },
-    { label: "Delete News", name: "delete_news" },
-    { label: "Update Instant Collections", name: "update_instant_collections" },
-    { label: "Delete Admins", name: "delete_admins" },
-    { label: "Create Requests", name: "create_requests" },
-    { label: "View Admins", name: "view_admins" },
-    { label: "Update Redeem Points", name: "update_redeem_points" },
-    { label: "Search Requests", name: "search_requests" },
-    { label: "View Drivers", name: "view_drivers" },
-    { label: "View Plants", name: "view_plants" },
-    { label: "Assign Vehicle Driver", name: "assign_vehicle_driver" },
-    { label: "Create Oil Collections", name: "create_oil_collections" },
-    { label: "Update Oil Collections", name: "update_oil_collections" },
-    { label: "Filter Schedules", name: "filter_schedules" },
-    { label: "Create Companies", name: "create_companies" },
-    { label: "Update Settings", name: "update_settings" },
-    { label: "Create Schedules", name: "create_schedules" },
-    { label: "Search Companies", name: "search_companies" },
-    { label: "Reject Requests", name: "reject_requests" },
-    { label: "Verify Statements", name: "verify_statements" },
-    { label: "Search Users", name: "search_users" },
-    { label: "Update Cities", name: "update_cities" },
-    { label: "Create Areas", name: "create_areas" },
-    { label: "Create Vehicles", name: "create_vehicles" },
-    { label: "View Users", name: "view_users" },
-    { label: "Dashboard Access", name: "dashboard_access" },
-    { label: "Update Drivers", name: "update_drivers" },
-    { label: "Update Companies", name: "update_companies" },
-    { label: "Update Payment Types", name: "update_payment_types" },
-    { label: "Update Users", name: "update_users" },
-    { label: "View Team Members", name: "view_team_members" },
-  ];
+  const fetchData = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/permissions`);
+      setPermissionsList(res.data);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
     if (type === "checkbox") {
-      setFormData({
-        ...formData,
-        permissions: checked
-          ? [...formData.permissions, value]
-          : formData.permissions.filter((permission) => permission !== value),
-      });
+      if (name === "allPermissions") {
+        // Handle "All Permissions" checkbox
+        const allPermissionNames = permissionsList.map((perm) => perm.name);
+        setFormData({
+          ...formData,
+          permissions: checked ? allPermissionNames : [],
+        });
+      } else {
+        // Handle individual permission checkboxes
+        setFormData({
+          ...formData,
+          permissions: checked
+            ? [...formData.permissions, value]
+            : formData.permissions.filter((permission) => permission !== value),
+        });
+      }
     } else {
       setFormData({
         ...formData,
@@ -115,16 +91,16 @@ const AddAdminPage = () => {
         "The password must be more than 7 characters",
         "warning"
       );
-      return; // إيقاف التنفيذ دون إظهار رسالة
+      return; // Stop execution without showing an error
     }
 
-    // تحقق من تطابق كلمة المرور
+    // Check if passwords match
     if (formData.password !== formData.confirmPassword) {
       triggerNotification("Passwords do not match", "error");
       return;
     }
 
-    // تهيئة البيانات التي سيتم إرسالها
+    // Prepare data to send
     const dataToSend = {
       first_name: formData.firstName,
       last_name: formData.lastName,
@@ -186,10 +162,28 @@ const AddAdminPage = () => {
               />
             </div>
           ))}
+          <div className="flex items-center mt-4">
+            <input
+              type="checkbox"
+              name="allPermissions"
+              value="allPermissions"
+              checked={formData.permissions.length === permissionsList.length}
+              onChange={handleChange}
+              id="allPermissions"
+              className="h-4 w-4 text-[#de8945] focus:ring-[#de8945] border-gray-300 rounded"
+            />
+            <label
+              htmlFor="allPermissions"
+              className="ml-2 text-lg text-gray-700 font-semibold"
+            >
+              All Permissions
+            </label>
+          </div>
         </div>
 
-        {/* قسم الصلاحيات */}
+        {/* Permissions Section with "All Permissions" Checkbox */}
         <div className="mb-6 mt-10">
+      
           <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
             {permissionsList.map((permission, index) => (
               <div key={index} className="flex items-center">
@@ -201,12 +195,13 @@ const AddAdminPage = () => {
                   onChange={handleChange}
                   id={permission.name}
                   className="h-4 w-4 text-[#de8945] focus:ring-[#de8945] border-gray-300 rounded"
+                  disabled={formData.permissions.length === permissionsList.length} // Disable if all permissions are selected
                 />
                 <label
                   htmlFor={permission.name}
                   className="ml-2 text-lg text-gray-700"
                 >
-                  {permission.label}
+                  {formatPermissionName(permission.name)}
                 </label>
               </div>
             ))}

@@ -13,7 +13,7 @@ const Page = () => {
   const [users, setUsers] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/users`);
+  const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/dashboard/users`);
 
   const fetchUsers = async (url) => {
     try {
@@ -43,7 +43,8 @@ const Page = () => {
   if (error) return <p>{error}</p>;
 
   const columnDefinitions = [
-    { key: "name", label: "Name" },
+    { key: "first_name", label: "First Name" }, // Added First Name
+    { key: "last_name", label: "Last Name" },   // Added Last Name
     { key: "email", label: "Email" },
     { key: "phone_number", label: "Phone Number" },
     { key: "role", label: "Role" },
@@ -67,40 +68,32 @@ const Page = () => {
     try {
       const token = Cookies.get("luxamToken");
 
-      // إرسال طلب GET لتحميل الملف
       const response = await axios.get(`${apiUrl}/users_document`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        responseType: "blob", // لضمان تحميل الملف
+        responseType: "blob",
       });
 
-      // استخراج نوع الملف من الـ Content-Type
       const contentType = response.headers["content-type"];
-
-      // تحديد امتداد الملف بناءً على Content-Type
       let fileExtension = "";
       if (contentType.includes("pdf")) {
         fileExtension = "pdf";
-      } else if (
-        contentType.includes("excel") ||
-        contentType.includes("spreadsheetml")
-      ) {
-        fileExtension = "xlsx"; // أو xls إذا كان الملف بتنسيق أقدم
+      } else if (contentType.includes("excel") || contentType.includes("spreadsheetml")) {
+        fileExtension = "xlsx";
       } else if (contentType.includes("csv")) {
         fileExtension = "csv";
       } else {
-        fileExtension = "dat"; // يمكن استخدام هذا كامتداد افتراضي
+        fileExtension = "dat";
       }
 
-      // إنشاء رابط لتحميل الملف
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `document.${fileExtension}`); // استخدام الامتداد المناسب
+      link.setAttribute("download", `document.${fileExtension}`);
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link); // إزالة الرابط بعد النقر
+      document.body.removeChild(link);
     } catch (err) {
       console.error("Failed to download the file:", err);
     }

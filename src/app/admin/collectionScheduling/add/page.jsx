@@ -256,8 +256,8 @@ const Page = () => {
     }
 
     if (!branchesId || branchesId.length === 0) {
-      triggerNotification("يرجى اختيار الفروع قبل الإرسال!", "warning")
-      // alert("يرجى اختيار الفروع قبل الإرسال!");
+      triggerNotification("Please select a branch", "warning")
+      // alert("Please select a branch");
       return;
     }
 
@@ -274,8 +274,8 @@ const Page = () => {
         (value) => value === "" || value === null || value === undefined
       )
     ) {
-      triggerNotification("يرجى اختيار جميع الحقول قبل الإرسال!", "warning")
-      // alert("يرجى اختيار جميع الحقول قبل الإرسال!");
+      triggerNotification("Please fill the required fields !", "warning")
+      // alert("Please fill the required fields !");
       return;
     }
     try {

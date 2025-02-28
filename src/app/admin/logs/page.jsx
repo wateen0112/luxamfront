@@ -5,19 +5,19 @@ import Header from "../../../components/tableComponents/Header";
 import Cookies from "js-cookie";
 import axios from "axios";
 import Loading from "../../../components/Loading";
-import { AiOutlineArrowUp, AiOutlineArrowDown } from "react-icons/ai"; // Import sorting icons
+import { AiOutlineArrowUp, AiOutlineArrowDown } from "react-icons/ai";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const Page = () => {
-  const [allLogs, setAllLogs] = useState(null); // Store all logs fetched from the API
-  const [filteredLogs, setFilteredLogs] = useState(null); // Store logs filtered locally
+  const [allLogs, setAllLogs] = useState(null);
+  const [filteredLogs, setFilteredLogs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/activity-logs`);
-  const [sortColumn, setSortColumn] = useState(null); // Track the column being sorted
-  const [sortOrder, setSortOrder] = useState("asc"); // Track the sorting order
-  const [search, setSearch] = useState(""); // State for search query
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [search, setSearch] = useState("");
 
   const fetchLogs = async (url) => {
     try {
@@ -30,70 +30,102 @@ const Page = () => {
         },
       });
 
-      // Process the data to make it more readable
-      const processedData = response.data.data.map((log) => {
-        const { properties, subject_type, causer_email, created_at, description } = log;
+      // Ensure response.data.data is an array
+      const logsData = Array.isArray(response.data.data) ? response.data.data : [];
 
-        // Extract relevant data based on the subject type
+      // Process the data to make it more readable
+      const processedData = logsData.map((log) => {
+        const { properties, subject_type, causer_first_name, causer_last_name, causer_email, created_at, description } = log;
+
         let details = {};
         switch (subject_type) {
-          case "App\\Models\\City":
+          case "App\\Models\\Vehicle":
             details = {
-              type: "City Update",
+              type: "Vehicle",
               action: description,
-              oldName: properties.data?.old?.name, // Access properties.data
-              newName: properties.data?.new?.name, // Access properties.data
+              oldVehicleNumber: properties.old?.vehicle_number,
+              newVehicleNumber: properties.new?.vehicle_number,
             };
             break;
-          case "App\\Models\\Request":
+          case "App\\Models\\User":
             details = {
-              type: "Request Update",
+              type: "User",
               action: description,
-              oldStatus: properties.data?.old?.status, // Access properties.data
-              newStatus: properties.data?.new?.status, // Access properties.data
+              oldFirstName: properties.old?.first_name,
+              newFirstName: properties.new?.first_name,
+              oldLastName: properties.old?.last_name,
+              newLastName: properties.new?.last_name,
+              oldPhoneNumber: properties.old?.phone_number,
+              newPhoneNumber: properties.new?.phone_number,
+              oldUsername: properties.old?.username,
+              newUsername: properties.new?.username,
+              oldRole: properties.old?.role,
+              newRole: properties.new?.role,
+            };
+            break;
+          case "App\\Models\\CompanyBranch":
+            details = {
+              type: "Company Branch",
+              action: description,
+              oldBranchName: properties.old?.branch_name,
+              newBranchName: properties.new?.branch_name,
+              oldBranchCode: properties.old?.branch_code,
+              newBranchCode: properties.new?.branch_code,
+              oldArea: properties.old?.area,
+              newArea: properties.new?.area,
+            };
+            break;
+          case "App\\Models\\Area":
+            details = {
+              type: "Area",
+              action: description,
+              oldName: properties.old?.name,
+              newName: properties.new?.name,
+              oldCityId: properties.old?.city_id,
+              newCityId: properties.new?.city_id,
             };
             break;
           case "App\\Models\\InstantCollection":
             details = {
               type: "Instant Collection",
               action: description,
-              oldQuantity: properties.data?.old?.quantity, // Access properties.data
-              newQuantity: properties.data?.new?.quantity, // Access properties.data
+              oldQuantity: properties.old?.quantity,
+              newQuantity: properties.new?.quantity,
+              oldPrice: properties.old?.price,
+              newPrice: properties.new?.price,
+              oldCompanyId: properties.old?.company_id,
+              newCompanyId: properties.new?.company_id,
+              oldBranchId: properties.old?.company_branch_id,
+              newBranchId: properties.new?.company_branch_id,
             };
             break;
-          case "App\\Models\\OilCollection": // Add case for OilCollection
+          case null:
             details = {
-              type: "Oil Collection",
+              type: "Unknown",
               action: description,
-              day: properties.data?.day, // Access properties.data
-              price: properties.data?.price, // Access properties.data
-              status: properties.data?.status, // Access properties.data
-              quantity: properties.data?.quantity, // Access properties.data
-              public_id: properties.data?.public_id, // Access properties.data
-              address_id: properties.data?.address_id, // Access properties.data
-              payment_type_id: properties.data?.payment_type_id, // Access properties.data
-              company_branch_id: properties.data?.company_branch_id, // Access properties.data
-              vehicle_driver_id: properties.data?.vehicle_driver_id, // Access properties.data
+              error: properties.error || "No subject details available",
             };
             break;
           default:
             details = {
-              type: "Other",
+              type: subject_type?.split("\\").pop() || "Unknown",
               action: description,
+              properties: properties || {},
             };
         }
 
         return {
-          id: log.id, // Ensure each log has a unique ID
+          id: log.id,
           type: details.type,
           action: details.action,
+          causerFirstName: causer_first_name,
+          causerLastName: causer_last_name,
           causerEmail: causer_email,
           createdAt: new Date(created_at).toLocaleString(),
-          ...details, // Spread the processed details
+          ...details,
         };
       });
 
-      // Store all logs and filtered logs
       setAllLogs({ ...response.data, data: processedData });
       setFilteredLogs({ ...response.data, data: processedData });
     } catch (err) {
@@ -106,37 +138,39 @@ const Page = () => {
 
   useEffect(() => {
     fetchLogs(currentPageUrl);
-  }, [currentPageUrl]); // Fetch logs only when the page changes
+  }, [currentPageUrl]);
 
-  // Handle sorting
   const handleSort = (columnKey) => {
     const newSortOrder = sortColumn === columnKey && sortOrder === "asc" ? "desc" : "asc";
     setSortColumn(columnKey);
     setSortOrder(newSortOrder);
 
-    const sortedData = [...filteredLogs.data].sort((a, b) => {
-      if (a[columnKey] < b[columnKey]) return newSortOrder === "asc" ? -1 : 1;
-      if (a[columnKey] > b[columnKey]) return newSortOrder === "asc" ? 1 : -1;
+    const sortedData = [...(filteredLogs?.data || [])].sort((a, b) => {
+      const aValue = a[columnKey] || "";
+      const bValue = b[columnKey] || "";
+      if (aValue < bValue) return newSortOrder === "asc" ? -1 : 1;
+      if (aValue > bValue) return newSortOrder === "asc" ? 1 : -1;
       return 0;
     });
 
     setFilteredLogs({ ...filteredLogs, data: sortedData });
   };
 
-  // Filter logs locally based on search query
   useEffect(() => {
     if (allLogs) {
       const filteredData = allLogs.data.filter((log) => {
         return (
-          log.type.toLowerCase().includes(search.toLowerCase()) ||
-          log.action.toLowerCase().includes(search.toLowerCase()) ||
-          log.causerEmail.toLowerCase().includes(search.toLowerCase()) ||
-          log.createdAt.toLowerCase().includes(search.toLowerCase())
+          (log.type?.toLowerCase() || "").includes(search.toLowerCase()) ||
+          (log.action?.toLowerCase() || "").includes(search.toLowerCase()) ||
+          (log.causerFirstName?.toLowerCase() || "").includes(search.toLowerCase()) ||
+          (log.causerLastName?.toLowerCase() || "").includes(search.toLowerCase()) ||
+          (log.causerEmail?.toLowerCase() || "").includes(search.toLowerCase()) ||
+          (log.createdAt?.toLowerCase() || "").includes(search.toLowerCase())
         );
       });
       setFilteredLogs({ ...allLogs, data: filteredData });
     }
-  }, [search, allLogs]); // Re-filter logs when search query changes
+  }, [search, allLogs]);
 
   if (loading) return <Loading />;
   if (error) return <p>{error}</p>;
@@ -162,11 +196,10 @@ const Page = () => {
         <Header
           exportFun={false}
           link="/admin/activity-logs/add"
-          setSearch={setSearch} // Pass setSearch to Header
-          showAddButton={false} // Hide the Add button
+          setSearch={setSearch}
+          showAddButton={false}
         />
 
-        {/* Normal HTML Table with Sorting */}
         <div className="overflow-x-auto mt-8 bg-white rounded-lg shadow">
           <table className="min-w-full">
             <thead>
@@ -189,6 +222,28 @@ const Page = () => {
                   <div className="flex items-center gap-2">
                     Action
                     {sortColumn === "action" && (
+                      sortOrder === "asc" ? <AiOutlineArrowUp size={14} /> : <AiOutlineArrowDown size={14} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort("causerFirstName")}
+                >
+                  <div className="flex items-center gap-2">
+                    Causer First Name
+                    {sortColumn === "causerFirstName" && (
+                      sortOrder === "asc" ? <AiOutlineArrowUp size={14} /> : <AiOutlineArrowDown size={14} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort("causerLastName")}
+                >
+                  <div className="flex items-center gap-2">
+                    Causer Last Name
+                    {sortColumn === "causerLastName" && (
                       sortOrder === "asc" ? <AiOutlineArrowUp size={14} /> : <AiOutlineArrowDown size={14} />
                     )}
                   </div>
@@ -231,48 +286,76 @@ const Page = () => {
                       {log.action}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.causerFirstName || "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.causerLastName || "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {log.causerEmail}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {log.createdAt}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {log.type === "City Update" ? (
-                        <div>
-                          <p>Old Name: {log.oldName}</p>
-                          <p>New Name: {log.newName}</p>
-                        </div>
-                      ) : log.type === "Request Update" ? (
-                        <div>
-                          <p>Old Status: {log.oldStatus}</p>
-                          <p>New Status: {log.newStatus}</p>
-                        </div>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {log.type === "Vehicle" ? (
+                        <>
+                          <p>Old Vehicle Number: {log.oldVehicleNumber || "N/A"}</p>
+                          <p>New Vehicle Number: {log.newVehicleNumber || "N/A"}</p>
+                        </>
+                      ) : log.type === "User" ? (
+                        <>
+                          <p>Old First Name: {log.oldFirstName || "N/A"}</p>
+                          <p>New First Name: {log.newFirstName || "N/A"}</p>
+                          <p>Old Last Name: {log.oldLastName || "N/A"}</p>
+                          <p>New Last Name: {log.newLastName || "N/A"}</p>
+                          <p>Old Phone: {log.oldPhoneNumber || "N/A"}</p>
+                          <p>New Phone: {log.newPhoneNumber || "N/A"}</p>
+                          <p>Old Username: {log.oldUsername || "N/A"}</p>
+                          <p>New Username: {log.newUsername || "N/A"}</p>
+                          <p>Old Role: {log.oldRole || "N/A"}</p>
+                          <p>New Role: {log.newRole || "N/A"}</p>
+                        </>
+                      ) : log.type === "Company Branch" ? (
+                        <>
+                          <p>Old Branch Name: {log.oldBranchName || "N/A"}</p>
+                          <p>New Branch Name: {log.newBranchName || "N/A"}</p>
+                          <p>Old Branch Code: {log.oldBranchCode || "N/A"}</p>
+                          <p>New Branch Code: {log.newBranchCode || "N/A"}</p>
+                          <p>Old Area: {log.oldArea || "N/A"}</p>
+                          <p>New Area: {log.newArea || "N/A"}</p>
+                        </>
+                      ) : log.type === "Area" ? (
+                        <>
+                          <p>Old Name: {log.oldName || "N/A"}</p>
+                          <p>New Name: {log.newName || "N/A"}</p>
+                          <p>Old City ID: {log.oldCityId || "N/A"}</p>
+                          <p>New City ID: {log.newCityId || "N/A"}</p>
+                        </>
                       ) : log.type === "Instant Collection" ? (
-                        <div>
-                          <p>Old Quantity: {log.oldQuantity}</p>
-                          <p>New Quantity: {log.newQuantity}</p>
-                        </div>
-                      ) : log.type === "Oil Collection" ? ( // Add case for Oil Collection
-                        <div>
-                          <p>Day: {log.day}</p>
-                          <p>Quantity: {log.quantity}</p>
-                          <p>Price: {log.price}</p>
-                          <p>Status: {log.status}</p>
-                          <p>Public ID: {log.public_id}</p>
-                          <p>Address ID: {log.address_id}</p>
-                          <p>Payment Type ID: {log.payment_type_id}</p>
-                          <p>Company Branch ID: {log.company_branch_id}</p>
-                          <p>Vehicle Driver ID: {log.vehicle_driver_id}</p>
-                        </div>
+                        <>
+                          <p>Old Quantity: {log.oldQuantity || "N/A"}</p>
+                          <p>New Quantity: {log.newQuantity || "N/A"}</p>
+                          <p>Old Price: {log.oldPrice || "N/A"}</p>
+                          <p>New Price: {log.newPrice || "N/A"}</p>
+                          <p>Old Company ID: {log.oldCompanyId || "N/A"}</p>
+                          <p>New Company ID: {log.newCompanyId || "N/A"}</p>
+                          <p>Old Branch ID: {log.oldBranchId || "N/A"}</p>
+                          <p>New Branch ID: {log.newBranchId || "N/A"}</p>
+                        </>
+                      ) : log.type === "Unknown" ? (
+                        <p>{log.error || "No details available"}</p>
                       ) : (
-                        "No details available"
+                        Object.entries(log.properties).map(([key, value]) => (
+                          <p key={key}>{key.replace(/_/g, " ")}: {value || "N/A"}</p>
+                        ))
                       )}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="text-center py-4 text-gray-500">
+                  <td colSpan={7} className="text-center py-4 text-gray-500">
                     No data available
                   </td>
                 </tr>
@@ -281,7 +364,6 @@ const Page = () => {
           </table>
         </div>
 
-        {/* Pagination */}
         <div className="flex justify-between items-center mt-4">
           <button
             onClick={handlePreviousPage}

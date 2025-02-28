@@ -191,7 +191,7 @@ const renderOilCollectionScheduling = async (setPage = null) => {
     }
 
     if (!branchesId) {
-      triggerNotification("يرجى اختيار الفروع قبل الإرسال!", "warning");
+      triggerNotification("Please select   branches !", "warning");
       return;
     }
 
@@ -216,7 +216,7 @@ const renderOilCollectionScheduling = async (setPage = null) => {
       .map(([key]) => key);
 
     if (missingFields.length > 0) {
-      triggerNotification(`يرجى ملء جميع الحقول قبل الإرسال!`, "warning");
+      triggerNotification("Please fill the required fields ", "warning");
       return;
     }
 

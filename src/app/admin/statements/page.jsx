@@ -29,7 +29,7 @@ const Page = () => {
       // تجهيز البيانات لتضمين user.name كـ user-name
       const processedData = response.data.data.map((item) => ({
         ...item,
-        company: item.company?.name || "-", // استخدم "N/A" إذا كان الحقل غير موجود
+        company: item.company_name|| "-", // استخدم "N/A" إذا كان الحقل غير موجود
       }));
 
       setCompanies({ ...response.data, data: processedData });

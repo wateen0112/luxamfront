@@ -27,9 +27,13 @@ const Login = () => {
       if (response.data.access_token) {
         // Store the token in cookies
         Cookies.set("luxamToken", response.data.access_token);
+        Cookies.set("userPermissions", response.data.permissions);
+        Cookies.set("first_name", response.data.first_name);
+        Cookies.set("last_name", response.data.last_name);
+        Cookies.set("email", response.data.email);
 
         // Store the permissions in localStorage
-        localStorage.setItem("userPermissions", JSON.stringify(response.data.permissions));
+        // localStorage.setItem("userPermissions", JSON.stringify(response.data.permissions));
 
         // Redirect to the dashboard
         router.push("/admin/dashboard");
