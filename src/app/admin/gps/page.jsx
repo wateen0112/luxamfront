@@ -15,7 +15,7 @@ const renderGPSPage = (setPage = null) => {
         <div className="mt-8 w-full h-full relative">
           <iframe
             className="w-full h-full border-none"
-            src="https://gps.yslootahtech.com"
+            src="gps.yslootahtech.com"
             title="GPS"
             allowFullScreen
           ></iframe>
