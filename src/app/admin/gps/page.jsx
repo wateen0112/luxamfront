@@ -5,7 +5,7 @@ import React from "react";
 // Main rendering function
 const renderGPSPage = (setPage = null) => {
   const handleIframeClick = () => {
-    window.open("https://gps.yslootahtech.com", "_blank", "noopener,noreferrer");
+    // window.open("gps.yslootahtech.com", "_blank", "noopener,noreferrer");
   };
 
   return (
