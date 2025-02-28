@@ -195,7 +195,7 @@ const Page = () => {
         </p>
         <Header
           exportFun={false}
-          link="/admin/activity-logs/add"
+          link=""
           setSearch={setSearch}
           showAddButton={false}
         />

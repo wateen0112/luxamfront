@@ -45,7 +45,8 @@ const Page = () => {
   if (error) return <p>{error}</p>;
 
   const columnDefinitions = [
-    { key: "name", label: "Name" },
+    { key: "first_name", label: "First Name" },
+    { key: "last_name", label: "Last Name" },
     { key: "email", label: "Email" },
     { key: "phone_number", label: "Phone" },
     { key: "user_status", label: "Status" },

@@ -19,9 +19,7 @@ const Page = () => {
   const [vehicleDrivers, setVehicleDrivers] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPageUrl, setCurrentPageUrl] = useState(
-    `${apiUrl}/vehicles-drivers`
-  );
+  const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/vehicles-drivers`);
 
   const fetchvehicleDrivers = async (url) => {
     try {
@@ -34,23 +32,29 @@ const Page = () => {
         },
       });
 
-      // Process the data to transform end_at into status
+      // Process the data to include vehicle number and driver name
       const processedData = response.data.data.map((item) => ({
         ...item,
-        status: item.end_at && isValidDate(item.end_at) ? item.end_at : "Active", // Show "Active" if end_at is null or invalid
-        vehicle_number: item.vehicle_number || "-", // Fallback for vehicle_number
-        driver_name: item.driver_name || "-", // Fallback for driver_name
+        status: item.end_at && isValidDate(item.end_at) ? item.end_at : "Active",
+        vehicle_number: item.vehicle_number || "-", // Use vehicle.vehicle_number if available
+        vehicle_name:item.vehicle_number || "-", // Fallback to vehicle_number if name is null
+        driver_name: item.driver_name 
+        || "-", // Combine driver names if available
       }));
 
       setVehicleDrivers({ ...response.data, data: processedData });
+ 
+      
     } catch (err) {
-      setError("Failed to fetch vehicleDrivers");
+      setError("Failed to fetch vehicle drivers");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
-
+useEffect(()=>{
+  console.log(vehicleDrivers);
+},[vehicleDrivers])
   useEffect(() => {
     fetchvehicleDrivers(currentPageUrl);
   }, [currentPageUrl]);
@@ -59,9 +63,9 @@ const Page = () => {
   if (error) return <p>{error}</p>;
 
   const columnDefinitions = [
-    { key: "vehicle_number", label: "Vehicle" },
-    { key: "driver_name", label: "Driver" },
-    { key: "status", label: "Status", type: (item) => (item.status === "Active" ? "text" : "date") }, // Dynamic type based on status
+    { key: "vehicle_number", label: "Vehicle " }, // Display vehicle name or number
+    { key: "driver_name", label: "Driver Name" },   // Display driver name
+    { key: "status", label: "Status", type: (item) => (item.status === "Active" ? "text" : "date") },
     { key: "created_at", label: "Created At", type: "date" },
   ];
 

@@ -39,14 +39,16 @@ const Header = ({ link, exportFun, assign, handleDownload, setSearch }) => {
         </div>
 
         {/* Add Button */}
-        {exportFun ? (
+        {exportFun && (
           <button
             onClick={handleDownload}
             className="gap-2 px-6 sm:px-20 w-full shadow-sm bg-[#de8945] border text-white py-3.5 rounded-xl hover:bg-[#d38e55] transition-all"
           >
             Export
           </button>
-        ) : (
+        ) }
+        
+        { link!==''&&(
           <Link
             href={link}
             className={`gap-2 ${
