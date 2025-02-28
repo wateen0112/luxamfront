@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "LBF",
+  title: "Luxam",
   description:
     "A control panel to manage Luxam and display its data and statistics",
   icons: {
