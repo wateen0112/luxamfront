@@ -15,10 +15,27 @@ const Page = () => {
   const [error, setError] = useState(null);
   const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/drivers`);
   const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState(null); // لتخزين نتائج البحث
+  const [searchResults, setSearchResults] = useState(null);
+
+  const formatDriverData = (driverData) => {
+    if (!driverData || !driverData.data) {
+      return { ...driverData, data: [] }; // Fallback for invalid data
+    }
+    const formattedData = {
+      ...driverData,
+      data: driverData.data.map((driver) => ({
+        ...driver,
+        fullName: `${driver.first_name || ""} ${driver.last_name || ""}`.trim(), // Ensure both fields are strings
+      })),
+    };
+    return formattedData;
+  };
 
   const searchCompanies = async (searchTerm) => {
-    if (!searchTerm) return; // تجنب إرسال طلب فارغ
+    if (!searchTerm) {
+      setSearchResults(null);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -28,24 +45,19 @@ const Page = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        params: { search: searchTerm }, // إرسال الـ search كـ parameter في URL
+        params: { search: searchTerm },
       });
 
       console.log("Search results:", response.data);
-      setSearchResults(response.data); // حفظ نتائج البحث في الـ state
+      const formattedResults = formatDriverData(response.data);
+      setSearchResults(formattedResults);
     } catch (err) {
-      setError("Failed to search companies");
-      console.error(err);
+      setError("Failed to search drivers");
+      console.error("Search error:", err);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (search) {
-      searchCompanies(search); // تنفيذ البحث عندما يتغير الـ search
-    }
-  }, [search]); // يعتمد على متغير search
 
   const fetchDrivers = async (url) => {
     try {
@@ -58,24 +70,73 @@ const Page = () => {
         },
       });
 
-      setDrivers(response.data);
+      const formattedDrivers = formatDriverData(response.data);
+      console.log("Fetched drivers data:", formattedDrivers); // Debug log
+      setDrivers(formattedDrivers);
     } catch (err) {
       setError("Failed to fetch drivers");
-      console.error(err);
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  const exportToCSV = () => {
+    const dataToExport = searchResults || drivers;
+    console.log("Exporting to CSV, data:", dataToExport); // Debug log
+
+    if (!dataToExport || !Array.isArray(dataToExport.data) || dataToExport.data.length === 0) {
+      console.warn("No valid data to export");
+      alert("No data available to export");
+      return;
+    }
+
+    const headers = columnDefinitions
+      .filter((col) => col.key !== "action") // Exclude action column
+      .map((col) => col.label)
+      .join(",");
+
+    const rows = dataToExport.data.map((driver) =>
+      columnDefinitions
+        .filter((col) => col.key !== "action") // Exclude action column
+        .map((col) => {
+          let value = driver[col.key] || "";
+          if (col.type === "date" && value) {
+            value = new Date(value).toLocaleDateString(); // Format date
+          }
+          // Escape quotes and wrap in quotes if value contains commas
+          return `"${String(value).replace(/"/g, '""')}"`;
+        })
+        .join(",")
+    );
+
+    const csvContent = [headers, ...rows].join("\n");
+    console.log("CSV content:", csvContent); // Debug log
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "drivers.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   useEffect(() => {
-    fetchDrivers(currentPageUrl);
-  }, [currentPageUrl]);
+    if (search) {
+      searchCompanies(search);
+    } else {
+      fetchDrivers(currentPageUrl);
+    }
+  }, [search, currentPageUrl]);
 
   if (loading) return <Loading />;
   if (error) return <p>{error}</p>;
 
   const columnDefinitions = [
-    { key: "name", label: "Name" },
+    { key: "fullName", label: "Name" },
     { key: "username", label: "User Name" },
     { key: "phone_number", label: "Phone Number" },
     { key: "role", label: "Role" },
@@ -87,16 +148,16 @@ const Page = () => {
   const handleNextPage = () => {
     if (searchResults?.next_page_url) {
       setCurrentPageUrl(searchResults.next_page_url);
-    } else if (companies?.next_page_url) {
-      setCurrentPageUrl(companies.next_page_url);
+    } else if (drivers?.next_page_url) {
+      setCurrentPageUrl(drivers.next_page_url);
     }
   };
 
   const handlePreviousPage = () => {
     if (searchResults?.prev_page_url) {
       setCurrentPageUrl(searchResults.prev_page_url);
-    } else if (companies?.prev_page_url) {
-      setCurrentPageUrl(companies.prev_page_url);
+    } else if (drivers?.prev_page_url) {
+      setCurrentPageUrl(drivers.prev_page_url);
     }
   };
 
@@ -104,14 +165,16 @@ const Page = () => {
     <div className="px-4 sm:px-8 py-6 hide-scrollbar">
       <div>
         <p className="text-xl sm:text-2xl font-bold text-[#17a3d7]">Drivers</p>
-        <Header setSearch={setSearch} link="/admin/drivers/add" />
+        <Header setSearch={setSearch} link="/admin/drivers/add" exportFun={exportToCSV} />
         <Table
-          data={searchResults ? searchResults : drivers}
+          data={searchResults || drivers}
           view="drivers"
           columns={columnDefinitions}
           onNextPage={handleNextPage}
           onPreviousPage={handlePreviousPage}
         />
+        {/* Temporary button for testing export */}
+   
       </div>
     </div>
   );

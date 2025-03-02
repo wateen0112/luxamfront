@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-
 import Header from "../../../components/tableComponents/Header";
 import Table from "../../../components/tableComponents/Table";
 import Cookies from "js-cookie";
@@ -16,7 +15,7 @@ const Page = () => {
   const [error, setError] = useState(null);
   const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/areas`);
 
-  const fetchareas = async (url) => {
+  const fetchAreas = async (url) => {
     try {
       setLoading(true);
       const token = Cookies.get("luxamToken");
@@ -30,19 +29,65 @@ const Page = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      // console.log(response.data.data.data)
+      console.log("Fetched areas data:", response.data.data); // Debug log
       setAreas(response.data.data);
     } catch (err) {
       setError("Failed to fetch areas");
-      console.error(err);
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchareas(currentPageUrl);
+    fetchAreas(currentPageUrl);
   }, [currentPageUrl]);
+
+  const exportToCSV = () => {
+    console.log("Exporting to CSV, areas:", areas); // Debug log
+    if (!areas || !Array.isArray(areas.data) || areas.data.length === 0) {
+      console.warn("No valid data to export");
+      alert("No data available to export");
+      return;
+    }
+
+    const headers = columnDefinitions
+      .filter((col) => col.key !== "action") // Exclude action column
+      .map((col) => col.label)
+      .join(",");
+
+    const rows = areas.data.map((area) =>
+      columnDefinitions
+        .filter((col) => col.key !== "action") // Exclude action column
+        .map((col) => {
+          let value = "";
+          if (col.key === "city") {
+            value = area.city?.name || "-"; // Use city name
+          } else {
+            value = area[col.key] || "";
+          }
+          if (col.type === "date" && value) {
+            value = new Date(value).toLocaleDateString(); // Format date
+          }
+          // Escape quotes and wrap in quotes if value contains commas
+          return `"${String(value).replace(/"/g, '""')}"`;
+        })
+        .join(",")
+    );
+
+    const csvContent = [headers, ...rows].join("\n");
+    console.log("CSV content:", csvContent); // Debug log
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "areas.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) return <Loading />;
   if (error) return <p>{error}</p>;
@@ -68,15 +113,14 @@ const Page = () => {
 
   const tableData = areas?.data?.map((item) => ({
     ...item,
-    city: item?.city?.name || "-",
+    city: item?.city?.name || "-", // Transform city object to city name
   }));
 
-  console.log(tableData);
   return (
     <div className="px-4 sm:px-8 py-6 hide-scrollbar">
       <div>
         <p className="text-xl sm:text-2xl font-bold text-[#17a3d7]">Areas</p>
-        <Header link="/admin/areas/add" />
+        <Header link="/admin/areas/add" exportFun={exportToCSV} />
         <Table
           data={{ ...areas, data: tableData }}
           columns={columnDefinitions}
@@ -85,6 +129,8 @@ const Page = () => {
           onPreviousPage={handlePreviousPage}
           view="areas"
         />
+        {/* Temporary button for testing export */}
+   
       </div>
     </div>
   );

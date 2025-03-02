@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, Check } from "lucide-react";
-
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter, useParams } from "next/navigation";
@@ -20,12 +19,12 @@ const CustomDropdown = ({
   value,
 }) => {
   const isOpen = openDropdown === label;
-  const [selected, setSelected] = useState(isMultiSelect ? [] : null);
+  const [selected, setSelected] = useState(isMultiSelect ? [] : value);
   const [direction, setDirection] = useState("down");
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    setSelected(value); // تحديث القيمة عند تغيير الـ prop
+    setSelected(value);
   }, [value]);
 
   useEffect(() => {
@@ -55,7 +54,6 @@ const CustomDropdown = ({
           ? selectedArray.filter((item) => item.value !== option.value)
           : [...selectedArray, option];
       });
-
       onSelect((prevSelected) => {
         const selectedArray = prevSelected || [];
         return selectedArray.some((item) => item.value === option.value)
@@ -82,12 +80,7 @@ const CustomDropdown = ({
             ? selected?.length > 0
               ? selected.map((item) => item.label).join(", ")
               : `Select ${label}`
-            : selected?.label
-            ? selected.label
-            : value
-            ? value
-            : `Select ${label}`}
-
+            : selected?.label || `Select ${label}`}
           <ChevronDown
             className={`h-5 w-5 transition-transform ${
               isOpen ? "rotate-180" : ""
@@ -128,20 +121,15 @@ const CustomDropdown = ({
 const Page = () => {
   const triggerNotification = useNotification();
   const { id } = useParams();
-
   const router = useRouter();
 
   const [drivers, setDrivers] = useState([]);
   const [selectedDriverId, setSelectedDriverId] = useState(null);
-
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [vehicle, setVehicles] = useState([]);
-
   const [branches, setBranches] = useState([]);
   const [branchesId, setBranchesId] = useState(null);
-
   const [openDropdown, setOpenDropdown] = useState(null);
-
   const [companies, setCompanies] = useState([]);
   const [companyId, setCompanyId] = useState(null);
   const [initialDriverId, setInitialDriverId] = useState(null);
@@ -170,10 +158,9 @@ const Page = () => {
           },
         });
         const driverOptions = response.data.data.map((driver) => ({
-          label: driver.name,
+          label: `${driver.first_name} ${driver.last_name || ''}`.trim(), // Combine first_name and last_name
           value: driver.id,
         }));
-
         setDrivers(driverOptions);
       } catch (error) {
         console.error("Error fetching drivers:", error);
@@ -184,54 +171,56 @@ const Page = () => {
 
   useEffect(() => {
     const fetchVehicles = async () => {
+      if (!selectedDriverId?.value) return;
       const token = Cookies.get("luxamToken");
       try {
         const response = await axios.get(
-          `${apiUrl}/drivers/${selectedDriverId?.value}/vehicles`,
+          `${apiUrl}/drivers/${selectedDriverId.value}/vehicles`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
-        const vehicle = response.data.map((vehicle) => ({
+        const vehicleOptions = response.data.map((vehicle) => ({
           label: vehicle.vehicle_number,
           value: vehicle.id,
         }));
-        setVehicles(vehicle);
+        setVehicles(vehicleOptions);
       } catch (error) {
-        console.error("Error fetching drivers:", error);
+        console.error("Error fetching vehicles:", error);
       }
     };
     fetchVehicles();
-  }, [selectedDriverId?.value]);
+  }, [selectedDriverId]);
 
   useEffect(() => {
     const fetchBranches = async () => {
+      if (!companyId?.value) return;
       const token = Cookies.get("luxamToken");
       try {
         const response = await axios.get(
-          `${apiUrl}/get_company_branches/${companyId?.value}`,
+          `${apiUrl}/get_company_branches/${companyId.value}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
-        const branch = response.data.map((branch) => ({
+        const branchOptions = response.data.map((branch) => ({
           label: branch.branch_name,
           value: branch.id,
         }));
-        setBranches(branch);
+        setBranches(branchOptions);
       } catch (error) {
-        console.error("Error fetching drivers:", error);
+        console.error("Error fetching branches:", error);
       }
     };
     fetchBranches();
-  }, [companyId?.value]);
+  }, [companyId]);
 
   useEffect(() => {
-    const fetchArea = async () => {
+    const fetchCompanies = async () => {
       const token = Cookies.get("luxamToken");
       try {
         const response = await axios.get(`${apiUrl}/companies`, {
@@ -239,19 +228,16 @@ const Page = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-
-        const companies = response.data.data.map((area) => ({
-          label: area.name,
-          value: area.id,
+        const companyOptions = response.data.data.map((company) => ({
+          label: company.name,
+          value: company.id,
         }));
-
-        setCompanies(companies);
+        setCompanies(companyOptions);
       } catch (error) {
-        console.error("Error fetching drivers:", error);
+        console.error("Error fetching companies:", error);
       }
     };
-
-    fetchArea();
+    fetchCompanies();
   }, []);
 
   useEffect(() => {
@@ -265,16 +251,14 @@ const Page = () => {
         });
 
         const oilColl = response.data;
-        // التأكد من تنسيق القيم بشكل صحيح قبل تعيينها في state
         setSelectedDriverId(
           oilColl?.vehicle_driver?.driver
             ? {
-                label: oilColl.vehicle_driver.driver.name,
+                label: `${oilColl.vehicle_driver.driver.first_name} ${oilColl.vehicle_driver.driver.last_name || ''}`.trim(),
                 value: oilColl.vehicle_driver.driver.id,
               }
             : null
         );
-
         setSelectedVehicleId(
           oilColl?.vehicle_driver?.vehicle
             ? {
@@ -283,7 +267,6 @@ const Page = () => {
               }
             : null
         );
-
         setCompanyId(
           oilColl?.company_branch?.company
             ? {
@@ -292,7 +275,6 @@ const Page = () => {
               }
             : null
         );
-
         setBranchesId(
           oilColl?.company_branch
             ? {
@@ -301,20 +283,18 @@ const Page = () => {
               }
             : null
         );
-        // تحديث formData ليحتوي على القيم الأولية للـ liters و price
         setFormData({
           liters: oilColl?.collected_liters || "",
           price: oilColl?.collected_price || "",
         });
-        setInitialDriverId(oilColl.vehicle_driver.driver.id);
-        setInitialVehicleId(oilColl.vehicle_driver.vehicle.id);
+        setInitialDriverId(oilColl?.vehicle_driver?.driver?.id);
+        setInitialVehicleId(oilColl?.vehicle_driver?.vehicle?.id);
       } catch (error) {
-        console.error("Error fetching drivers:", error);
+        console.error("Error fetching oil collection:", error);
       }
     };
-
     fetchData();
-  }, []);
+  }, [id]);
 
   const handleSubmit = async () => {
     const token = Cookies.get("luxamToken");
@@ -323,7 +303,6 @@ const Page = () => {
       return;
     }
 
-    // تحقق مما إذا كان السائق قد تغير وتأكد من أن المركبة قد تغيرت أيضًا
     if (
       selectedDriverId?.value !== initialDriverId &&
       selectedVehicleId?.value === initialVehicleId
@@ -373,15 +352,15 @@ const Page = () => {
         </h2>
         <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
           <CustomDropdown
-            value={selectedDriverId?.label}
+            value={selectedDriverId}
             label="Driver"
             options={drivers}
-            onSelect={(option) => setSelectedDriverId(option)}
+            onSelect={setSelectedDriverId}
             openDropdown={openDropdown}
             setOpenDropdown={setOpenDropdown}
           />
           <CustomDropdown
-            value={selectedVehicleId?.label}
+            value={selectedVehicleId}
             label="Vehicle"
             options={vehicle}
             onSelect={setSelectedVehicleId}
@@ -389,7 +368,7 @@ const Page = () => {
             setOpenDropdown={setOpenDropdown}
           />
           <CustomDropdown
-            value={companyId?.label}
+            value={companyId}
             label="Companies"
             options={companies}
             onSelect={setCompanyId}
@@ -397,7 +376,7 @@ const Page = () => {
             setOpenDropdown={setOpenDropdown}
           />
           <CustomDropdown
-            value={branchesId?.label}
+            value={branchesId}
             label="Company Branches"
             options={branches}
             onSelect={setBranchesId}

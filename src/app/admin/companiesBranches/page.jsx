@@ -14,13 +14,11 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [companyDetails, setCompanyDetails] = useState({});
-  const [currentPageUrl, setCurrentPageUrl] = useState(
-    `${apiUrl}/company-branches`
-  );
+  const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/company-branches`);
   const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState(null); // لتخزين نتائج البحث
+  const [searchResults, setSearchResults] = useState(null);
 
-  // جلب بيانات الفروع والشركات
+  // Fetch branches and companies
   const fetchCompanies = async (url) => {
     try {
       setLoading(true);
@@ -35,19 +33,23 @@ const Page = () => {
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log("Fetched company branches data:", response.data); // Debug log
       setCompanies(response.data);
-      // جلب تفاصيل الشركات باستخدام company_ids
+      // Fetch company names based on company_ids
       fetchCompanyNames(response.data.data);
     } catch (err) {
-      setError("Failed to fetch companies");
-      console.error(err);
+      setError("Failed to fetch company branches");
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const searchCompanies = async (searchTerm) => {
-    if (!searchTerm) return; // تجنب إرسال طلب فارغ
+    if (!searchTerm) {
+      setSearchResults(null);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -57,14 +59,15 @@ const Page = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        params: { search: searchTerm }, // إرسال الـ search كـ parameter في URL
+        params: { search: searchTerm },
       });
 
       console.log("Search results:", response.data);
-      setSearchResults(response.data); // حفظ نتائج البحث في الـ state
+      setSearchResults(response.data);
+      fetchCompanyNames(response.data.data);
     } catch (err) {
-      setError("Failed to search companies");
-      console.error(err);
+      setError("Failed to search company branches");
+      console.error("Search error:", err);
     } finally {
       setLoading(false);
     }
@@ -72,17 +75,15 @@ const Page = () => {
 
   useEffect(() => {
     if (search) {
-      searchCompanies(search); // تنفيذ البحث عندما يتغير الـ search
+      searchCompanies(search);
     }
-  }, [search]); // يعتمد على متغير search
+  }, [search]);
 
-  // جلب أسماء الشركات بناءً على company_id
+  // Fetch company names based on company_id
   const fetchCompanyNames = async (branches) => {
     try {
       const token = Cookies.get("luxamToken");
-      const companyIds = [
-        ...new Set(branches.map((branch) => branch.company_id)),
-      ]; // استخراج company_ids المميزة
+      const companyIds = [...new Set(branches.map((branch) => branch.company_id))];
       const responses = await Promise.all(
         companyIds.map((id) =>
           axios.get(`${apiUrl}/company_details/${id}`, {
@@ -90,10 +91,10 @@ const Page = () => {
           })
         )
       );
-      console.log(responses);
+      console.log("Company details responses:", responses);
       const companiesData = responses.reduce((acc, response) => {
         if (response.data && response.data.id) {
-          acc[response.data.id] = response.data.name; // حفظ اسم الشركة مع الـ id
+          acc[response.data.id] = response.data.name;
         }
         return acc;
       }, {});
@@ -107,6 +108,56 @@ const Page = () => {
     fetchCompanies(currentPageUrl);
   }, [currentPageUrl]);
 
+  const exportToCSV = () => {
+    const dataToExport = searchResults || companies;
+    console.log("Exporting to CSV, data:", dataToExport); // Debug log
+
+    if (!dataToExport || !Array.isArray(dataToExport.data) || dataToExport.data.length === 0) {
+      console.warn("No valid data to export");
+      alert("No data available to export");
+      return;
+    }
+
+    const headers = columnDefinitions
+      .filter((col) => col.key !== "action") // Exclude action column
+      .map((col) => col.label)
+      .join(",");
+
+    const rows = dataToExport.data.map((item) =>
+      columnDefinitions
+        .filter((col) => col.key !== "action") // Exclude action column
+        .map((col) => {
+          let value = "";
+          if (col.key === "company_name") {
+            value = companyDetails[item.company_id] || "-"; // Use company name from companyDetails
+          } else if (col.key === "address") {
+            value = item.address?.address || "-"; // Use address or fallback
+          } else {
+            value = item[col.key] || "";
+          }
+          if (col.type === "date" && value) {
+            value = new Date(value).toLocaleDateString(); // Format date
+          }
+          // Escape quotes and wrap in quotes if value contains commas
+          return `"${String(value).replace(/"/g, '""')}"`;
+        })
+        .join(",")
+    );
+
+    const csvContent = [headers, ...rows].join("\n");
+    console.log("CSV content:", csvContent); // Debug log
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "company_branches.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) return <Loading />;
   if (error) return <p>{error}</p>;
 
@@ -115,7 +166,7 @@ const Page = () => {
     { key: "branch_name", label: "Branch" },
     { key: "branch_code", label: "Branch Code" },
     { key: "area", label: "Area" },
-    { key: "address", label: "Address" }, // عمود العنوان
+    { key: "address", label: "Address" },
     { key: "created_at", label: "Created at", type: "date" },
     { key: "action", label: "Action" },
   ];
@@ -136,11 +187,10 @@ const Page = () => {
     }
   };
 
-  // تعديل البيانات لتمرير اسم الشركة بدلاً من الـ ID أو وضع - إذا لم تكن موجودة
   const tableData = companies?.data.map((item) => ({
     ...item,
     company_name: companyDetails[item.company_id] || "-",
-    address: item.address?.address || "-", // استعراض العنوان أو عرض "-" إذا لم يكن موجودًا
+    address: item.address?.address || "-",
   }));
 
   return (
@@ -149,17 +199,17 @@ const Page = () => {
         <p className="text-xl sm:text-2xl font-bold text-[#17a3d7]">
           Companies Branches
         </p>
-        <Header setSearch={setSearch} link="/admin/companiesBranches/add" />
+        <Header setSearch={setSearch} link="/admin/companiesBranches/add" exportFun={exportToCSV} />
         <Table
-          data={
-            searchResults ? searchResults : { ...companies, data: tableData }
-          }
+          data={searchResults ? searchResults : { ...companies, data: tableData }}
           columns={columnDefinitions}
           deleteApi={"company-branches"}
           onNextPage={handleNextPage}
           onPreviousPage={handlePreviousPage}
           view="companiesBranches"
         />
+        {/* Temporary button for testing export */}
+   
       </div>
     </div>
   );

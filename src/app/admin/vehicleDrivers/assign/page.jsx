@@ -17,6 +17,7 @@ const Page = () => {
   const [isVehicleOpen, setIsVehicleOpen] = useState(false);
   const [isDriverOpen, setIsDriverOpen] = useState(false);
   const router = useRouter();
+
   useEffect(() => {
     const token = Cookies.get("luxamToken");
     const fetchData = async () => {
@@ -30,7 +31,12 @@ const Page = () => {
           }),
         ]);
         setVehicles(vehiclesRes.data.vehicles.data);
-        setDrivers(driversRes.data.data);
+        // Format driver names using first_name and last_name
+        const formattedDrivers = driversRes.data.data.map(driver => ({
+          ...driver,
+          fullName: `${driver.first_name} ${driver.last_name || ''}`.trim()
+        }));
+        setDrivers(formattedDrivers);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -92,7 +98,7 @@ const Page = () => {
             onClick={() => setIsDriverOpen(!isDriverOpen)}
           >
             <span>
-              {selectedDriver ? selectedDriver.name : "Select a driver"}
+              {selectedDriver ? selectedDriver.fullName : "Select a driver"}
             </span>
             <ChevronDown
               className={`transition-transform ${
@@ -117,7 +123,7 @@ const Page = () => {
                       setIsDriverOpen(false);
                     }}
                   >
-                    {driver.name}
+                    {driver.fullName}
                   </li>
                 ))}
               </motion.ul>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Header from "../../../components/tableComponents/Header";
 import Table from "../../../components/tableComponents/Table";
 
 const Page = () => {
@@ -67,6 +68,56 @@ const Page = () => {
     requests: "requests",
   };
 
+  const exportToCSV = () => {
+    console.log("Exporting to CSV, tablesData:", tablesData); // Debug log
+
+    if (!tablesData || Object.keys(tablesData).length === 0 || Object.values(tablesData).every(data => data.length === 0)) {
+      console.warn("No valid data to export");
+      alert("No data available to export");
+      return;
+    }
+
+    // Combine all tables into one CSV with headers indicating table type
+    const allRows = [];
+    
+    Object.entries(tablesData).forEach(([tableType, data]) => {
+      if (data?.length > 0) {
+        const cols = columnDefinitions[tableType].filter(col => col.key !== "action" && col.key !== "show"); // Exclude action columns
+        const headers = cols.map(col => col.label).join(",");
+        
+        // Add table type as a separator row
+        allRows.push(`"${tableType.replace("_", " ")}"`);
+        allRows.push(headers);
+
+        const tableRows = data.map(item =>
+          cols.map(col => {
+            let value = item[col.key] || "";
+            if (col.type === "date" && value) {
+              value = new Date(value).toLocaleDateString(); // Format date
+            }
+            return `"${String(value).replace(/"/g, '""')}"`; // Escape quotes
+          }).join(",")
+        );
+
+        allRows.push(...tableRows);
+        allRows.push(""); // Empty row for separation between tables
+      }
+    });
+
+    const csvContent = allRows.join("\n");
+    console.log("CSV content:", csvContent); // Debug log
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "search_results.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Only render content after mounting to ensure localStorage is available
   if (!isMounted) {
     return null; // Or a loading spinner if preferred
@@ -79,6 +130,7 @@ const Page = () => {
       <p className="text-xl sm:text-2xl font-bold text-[#17a3d7] self-start">
         Search Results
       </p>
+      <Header exportFun={exportToCSV} /> {/* Added Header with export function */}
 
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center h-[50vh]">

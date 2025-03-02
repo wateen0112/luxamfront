@@ -41,7 +41,10 @@ const Header = ({ link, exportFun, assign, handleDownload, setSearch }) => {
         {/* Add Button */}
         {exportFun && (
           <button
-            onClick={handleDownload}
+            onClick={
+             
+              exportFun
+           }
             className="gap-2 px-6 sm:px-20 w-full shadow-sm bg-[#de8945] border text-white py-3.5 rounded-xl hover:bg-[#d38e55] transition-all"
           >
             Export
@@ -50,7 +53,7 @@ const Header = ({ link, exportFun, assign, handleDownload, setSearch }) => {
         
         { link!==''&&(
           <Link
-            href={link}
+            href={link??''}
             className={`gap-2 ${
               assign ? "px-6 sm:px-20" : "px-6 sm:px-20"
             } text-center  w-full shadow-sm bg-[#de8945] border text-white py-3.5 rounded-xl hover:bg-[#d38e55] transition-all whitespace-nowrap`}

@@ -8,7 +8,8 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const UpdateCompanyPage = () => {
   const router = useRouter();
-  const { id } = useParams(); // نحصل على الـ id من الرابط
+  const { id } = useParams(); // Get the company ID from the URL
+
   const [formData, setFormData] = useState({
     name: "",
     unit_price: "",
@@ -28,10 +29,17 @@ const UpdateCompanyPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [currency, setCurrency] = useState("AED"); // Default to AED for SSR
 
+  // Fetch currency from cookies only on client side
+  useEffect(() => {
+    const cookieCurrency = Cookies.get("currency") || "AED";
+    setCurrency(cookieCurrency);
+  }, []);
+
+  // Fetch company data when the page loads
   useEffect(() => {
     if (id) {
-      // جلب بيانات الشركة باستخدام الـ id عند تحميل الصفحة
       const fetchCompanyData = async () => {
         try {
           const token = Cookies.get("luxamToken");
@@ -71,6 +79,22 @@ const UpdateCompanyPage = () => {
     }
   }, [id]);
 
+  // Hardcoded exchange rates (AED as base)
+  const exchangeRates = {
+    AED: 1,
+    USD: 0.27, // 1 AED ≈ 0.27 USD
+    EUR: 0.25, // 1 AED ≈ 0.25 EUR
+  };
+
+  // Convert AED to other currencies
+  const convertPrice = (valueInAED) => {
+    if (!valueInAED || isNaN(valueInAED)) return { USD: "N/A", EUR: "N/A" };
+    return {
+      USD: (valueInAED * exchangeRates.USD).toFixed(2),
+      EUR: (valueInAED * exchangeRates.EUR).toFixed(2),
+    };
+  };
+
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prevData) => ({
@@ -92,7 +116,7 @@ const UpdateCompanyPage = () => {
       return;
     }
 
-    // التحقق من أن الـ unit_price غير فارغ فقط إذا كانت قيمته قد تغيرت
+    // Validate unit_price only if it has changed and is empty
     if (
       formData.unit_price === "" &&
       formData.unit_price !== originalData.unit_price
@@ -102,11 +126,11 @@ const UpdateCompanyPage = () => {
       return;
     }
 
-    // تحويل التواريخ إلى الصيغة المطلوبة
+    // Prepare request data with only changed fields
     const requestData = {};
     if (formData.name !== originalData.name) requestData.name = formData.name;
     if (formData.unit_price !== originalData.unit_price)
-      requestData.unit_price = parseFloat(formData.unit_price);
+      requestData.unit_price = parseFloat(formData.unit_price); // Always in AED
     if (formData.contract_start_at !== originalData.contract_start_at)
       requestData.contract_start_at = formData.contract_start_at;
     if (formData.contract_end_at !== originalData.contract_end_at)
@@ -114,7 +138,7 @@ const UpdateCompanyPage = () => {
     if (formData.contract_status !== originalData.contract_status)
       requestData.contract_status = formData.contract_status;
 
-    // التأكد من أن التواريخ هي بتنسيق "yyyy-mm-dd"
+    // Format dates to "yyyy-mm-dd"
     if (formData.contract_start_at) {
       const startDate = new Date(formData.contract_start_at);
       requestData.contract_start_at = startDate.toISOString().split("T")[0];
@@ -154,6 +178,8 @@ const UpdateCompanyPage = () => {
     }
   };
 
+  const convertedPrices = convertPrice(parseFloat(formData.unit_price) || 0);
+
   return (
     <div className="md:px-16 px-8 py-8 max-w-6xl mx-auto">
       <header>
@@ -164,6 +190,7 @@ const UpdateCompanyPage = () => {
 
       <main className="mt-10">
         {error && <p className="text-red-600">{error}</p>}
+        {success && <p className="text-green-600">{success}</p>}
         <form
           onSubmit={handleSubmit}
           className="grid md:grid-cols-2 md:gap-8 gap-6"
@@ -175,13 +202,21 @@ const UpdateCompanyPage = () => {
             value={formData.name}
             onChange={handleChange}
           />
-          <InputField
-            label="Unit Price"
-            id="unit_price"
-            type="number"
-            value={formData.unit_price}
-            onChange={handleChange}
-          />
+          <div>
+            <InputField
+              label="Unit Price (AED)" // Always in AED
+              id="unit_price"
+              type="number"
+              value={formData.unit_price}
+              onChange={handleChange}
+            />
+            {currency !== "AED" && formData.unit_price > 0 && (
+              <div className="mt-2 text-sm text-gray-600">
+                <span>USD {convertedPrices.USD} </span>
+                <span>EUR {convertedPrices.EUR}</span>
+              </div>
+            )}
+          </div>
           <InputField
             label="Contract Start At"
             id="contract_start_at"

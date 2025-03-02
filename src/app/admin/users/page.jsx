@@ -26,13 +26,53 @@ const Page = () => {
         },
       });
 
+      console.log("Fetched users data:", response.data); // Debug log
       setUsers(response.data);
     } catch (err) {
       setError("Failed to fetch users");
-      console.error(err);
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportToCSV = () => {
+    console.log("Exporting to CSV, users:", users); // Debug log
+    if (!users || !Array.isArray(users.data) || users.data.length === 0) {
+      console.warn("No valid data to export");
+      alert("No data available to export");
+      return;
+    }
+
+    const headers = columnDefinitions
+      .map((col) => col.label)
+      .join(",");
+
+    const rows = users.data.map((item) =>
+      columnDefinitions
+        .map((col) => {
+          let value = item[col.key] || "";
+          if (col.type === "date" && value) {
+            value = new Date(value).toLocaleDateString(); // Format date
+          }
+          // Escape quotes and wrap in quotes if value contains commas
+          return `"${String(value).replace(/"/g, '""')}"`;
+        })
+        .join(",")
+    );
+
+    const csvContent = [headers, ...rows].join("\n");
+    console.log("CSV content:", csvContent); // Debug log
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "users.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -43,8 +83,8 @@ const Page = () => {
   if (error) return <p>{error}</p>;
 
   const columnDefinitions = [
-    { key: "first_name", label: "First Name" }, // Added First Name
-    { key: "last_name", label: "Last Name" },   // Added Last Name
+    { key: "first_name", label: "First Name" },
+    { key: "last_name", label: "Last Name" },
     { key: "email", label: "Email" },
     { key: "phone_number", label: "Phone Number" },
     { key: "role", label: "Role" },
@@ -89,7 +129,7 @@ const Page = () => {
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
-      link.href = url;
+      link.href = url ?? "";
       link.setAttribute("download", `document.${fileExtension}`);
       document.body.appendChild(link);
       link.click();
@@ -103,7 +143,12 @@ const Page = () => {
     <div className="px-4 sm:px-8 py-6 hide-scrollbar">
       <div>
         <p className="text-xl sm:text-2xl font-bold text-[#17a3d7]">Users</p>
-        <Header handleDownload={handleDownload} exportFun={true} />
+        <Header
+          handleDownload={handleDownload}
+          href=""
+          link={''}
+          exportFun={exportToCSV} // Updated from true to export function
+        />
         <Table
           data={users}
           view="users"

@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { useNotification } from "../../../../components/notifi/NotificationContext";
-import useCurrencyConversion from "../../../../app/hooks/useCurrencyChange";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const AddCompanyPage = () => {
-  const currencyConversion = useCurrencyConversion();
   const triggerNotification = useNotification();
   const router = useRouter();
 
@@ -25,13 +23,35 @@ const AddCompanyPage = () => {
     contractStartAt: "",
     contractEndAt: "",
     contractStatus: "active",
-    paymentType: "cash", // Default to "cash" or "contract"
+    paymentType: "cash",
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const currency = Cookies.get("currency");
+  const [currency, setCurrency] = useState("AED"); // Default to AED for SSR
+
+  // Fetch currency from cookies only on client side
+  useEffect(() => {
+    const cookieCurrency = Cookies.get("currency") || "AED";
+    setCurrency(cookieCurrency);
+  }, []);
+
+  // Hardcoded exchange rates (AED as base)
+  const exchangeRates = {
+    AED: 1,
+    USD: 0.27, // 1 AED ≈ 0.27 USD
+    EUR: 0.25, // 1 AED ≈ 0.25 EUR
+  };
+
+  // Convert AED to other currencies
+  const convertPrice = (valueInAED) => {
+    if (!valueInAED || isNaN(valueInAED)) return { USD: "N/A", EUR: "N/A" };
+    return {
+      USD: (valueInAED * exchangeRates.USD).toFixed(2),
+      EUR: (valueInAED * exchangeRates.EUR).toFixed(2),
+    };
+  };
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -55,7 +75,6 @@ const AddCompanyPage = () => {
       return;
     }
 
-    // Validate required fields
     const requiredFields = [
       "firstName",
       "lastName",
@@ -68,7 +87,6 @@ const AddCompanyPage = () => {
       "paymentType",
     ];
 
-    // Only require contract dates if payment type is "contract"
     if (formData.paymentType === "contract") {
       requiredFields.push("contractStartAt", "contractEndAt");
     }
@@ -85,7 +103,6 @@ const AddCompanyPage = () => {
       return;
     }
 
-    // Validate contract dates only if payment type is "contract"
     if (formData.paymentType === "contract") {
       const startDate = new Date(formData.contractStartAt);
       const endDate = new Date(formData.contractEndAt);
@@ -107,11 +124,11 @@ const AddCompanyPage = () => {
       phone_number: formData.phoneNumber,
       password: formData.password,
       name: formData.company,
-      unit_price: parseFloat(formData.unitPrice),
+      unit_price: parseFloat(formData.unitPrice), // Always in AED
       contract_start_at: formData.contractStartAt,
       contract_end_at: formData.contractEndAt,
       contract_status: formData.contractStatus,
-      payment_type: formData.paymentType, // Include payment type in the request
+      payment_type: formData.paymentType,
     };
 
     try {
@@ -124,6 +141,7 @@ const AddCompanyPage = () => {
       console.log(response);
       router.push("/admin/companies");
       setSuccess("Company added successfully!");
+      triggerNotification("Company added successfully!", "success");
       setFormData({
         firstName: "",
         lastName: "",
@@ -135,7 +153,7 @@ const AddCompanyPage = () => {
         contractStartAt: "",
         contractEndAt: "",
         contractStatus: "active",
-        paymentType: "cash", // Reset to default
+        paymentType: "cash",
       });
     } catch (err) {
       triggerNotification(
@@ -150,6 +168,8 @@ const AddCompanyPage = () => {
       setLoading(false);
     }
   };
+
+  const convertedPrices = convertPrice(parseFloat(formData.unitPrice) || 0);
 
   return (
     <div className="md:px-16 px-8 py-8 max-w-6xl mx-auto">
@@ -219,21 +239,19 @@ const AddCompanyPage = () => {
                 onChange={handleChange}
               />
               <div>
-                <div className="grid grid-cols-4 items-center gap-3">
-                  <div className={currency !== "AED" && formData.unitPrice > 0 ? "col-span-3" : "col-span-4"}>
-                    <InputField
-                      className="w-full"
-                      label="Unit Price"
-                      id="unitPrice"
-                      type="number"
-                      value={formData.unitPrice}
-                      onChange={handleChange}
-                    />
+                <InputField
+                  label="Unit Price (AED)" // Always AED
+                  id="unitPrice"
+                  type="number"
+                  value={formData.unitPrice}
+                  onChange={handleChange}
+                />
+                {currency !== "AED" && formData.unitPrice > 0 && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    <span>USD {convertedPrices.USD} </span>
+                    <span>EUR {convertedPrices.EUR}</span>
                   </div>
-                  {currency !== "AED" && formData.unitPrice > 0 && (
-                    <span className="mt-8">{currency + " " + currencyConversion(formData.unitPrice).convertedValue}</span>
-                  )}
-                </div>
+                )}
               </div>
               <InputField
                 label="Contract Start At"
@@ -241,7 +259,7 @@ const AddCompanyPage = () => {
                 type="date"
                 value={formData.contractStartAt}
                 onChange={handleChange}
-                disabled={formData.paymentType === "cash"} // Disable if payment type is "cash"
+                disabled={formData.paymentType === "cash"}
               />
               <InputField
                 label="Contract End At"
@@ -249,7 +267,7 @@ const AddCompanyPage = () => {
                 type="date"
                 value={formData.contractEndAt}
                 onChange={handleChange}
-                disabled={formData.paymentType === "cash"} // Disable if payment type is "cash"
+                disabled={formData.paymentType === "cash"}
               />
               <SelectField
                 label="Contract Status"
@@ -260,7 +278,7 @@ const AddCompanyPage = () => {
                   { value: "active", label: "Active" },
                   { value: "deactive", label: "Deactive" },
                 ]}
-                disabled={formData.paymentType === "cash"} // Disable when payment type is "cash"
+                disabled={formData.paymentType === "cash"}
               />
               <SelectField
                 label="Payment Type"
@@ -283,6 +301,8 @@ const AddCompanyPage = () => {
             {loading ? "Adding..." : "Add"}
           </button>
         </form>
+        {success && <p className="mt-4 text-green-600">{success}</p>}
+        {error && <p className="mt-4 text-red-600">{error}</p>}
       </main>
     </div>
   );
@@ -297,9 +317,9 @@ const InputField = ({ label, id, type, value, onChange, disabled }) => (
       id={id}
       type={type}
       value={value}
-      min={type === "number" ? 1 : undefined} // Add min value for number inputs
+      min={type === "number" ? 1 : undefined}
       onChange={onChange}
-      disabled={disabled} // Add disabled prop
+      disabled={disabled}
       className={`input mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#17a3d7] focus:outline-none ${
         disabled ? "bg-gray-100 cursor-not-allowed" : ""
       }`}
@@ -316,7 +336,7 @@ const SelectField = ({ label, id, value, onChange, options, disabled }) => (
       id={id}
       value={value}
       onChange={onChange}
-      disabled={disabled} // Add disabled prop
+      disabled={disabled}
       className={`input mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#17a3d7] focus:outline-none ${
         disabled ? "bg-gray-100 cursor-not-allowed" : ""
       }`}

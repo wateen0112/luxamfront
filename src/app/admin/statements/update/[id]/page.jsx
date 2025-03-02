@@ -201,9 +201,9 @@ const StatementPage = () => {
 
         // Use the collection ID from statementData
         const collectionId = statementData?.collections[0]?.id;
-        if (!collectionId) {
-          throw new Error("No collection ID found in statement data.");
-        }
+        // if (!collectionId) {
+        //   throw new Error("No collection ID found in statement data.");
+        // }
 
         const response = await axios.post(
           `${apiUrl}/upload-invoice/${id}`,
@@ -240,9 +240,9 @@ const StatementPage = () => {
 
         // Use the collection ID from statementData
         const collectionId = statementData?.collections[0]?.id;
-        if (!collectionId) {
-          throw new Error("No collection ID found in statement data.");
-        }
+        // if (!collectionId) {
+        //   throw new Error("No collection ID found in statement data.");
+        // }
 
         const response = await axios.post(
           `${apiUrl}/upload-payment-proof/${id}`,

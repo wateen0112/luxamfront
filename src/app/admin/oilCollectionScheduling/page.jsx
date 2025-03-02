@@ -60,12 +60,54 @@ const renderOilCollections = async (currentPageUrl = `${apiUrl}/oil_collections`
       });
 
       companies = { ...response.data, data: processedData };
+      console.log("Fetched oil collections data:", companies); // Debug log
     } catch (err) {
-      error = "Failed to fetch companies";
-      console.error(err);
+      error = "Failed to fetch oil collections";
+      console.error("Fetch error:", err);
     } finally {
       loading = false;
     }
+  };
+
+  const exportToCSV = () => {
+    console.log("Exporting to CSV, companies:", companies); // Debug log
+    if (!companies || !Array.isArray(companies.data) || companies.data.length === 0) {
+      console.warn("No valid data to export");
+      alert("No data available to export");
+      return;
+    }
+
+    const headers = columnDefinitions
+      .filter((col) => col.key !== "action") // Exclude action column
+      .map((col) => col.label)
+      .join(",");
+
+    const rows = companies.data.map((item) =>
+      columnDefinitions
+        .filter((col) => col.key !== "action") // Exclude action column
+        .map((col) => {
+          let value = item[col.key] || "";
+          if (col.type === "date" && value) {
+            value = new Date(value).toLocaleDateString(); // Format date
+          }
+          // Escape quotes and wrap in quotes if value contains commas
+          return `"${String(value).replace(/"/g, '""')}"`;
+        })
+        .join(",")
+    );
+
+    const csvContent = [headers, ...rows].join("\n");
+    console.log("CSV content:", csvContent); // Debug log
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "oil_collections.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Fetch data initially or for pagination
@@ -106,7 +148,7 @@ const renderOilCollections = async (currentPageUrl = `${apiUrl}/oil_collections`
         <p className="text-xl sm:text-2xl font-bold text-[#17a3d7]">
           Oil Collections
         </p>
-        <Header link="/admin/oilCollectionScheduling/add" />
+        <Header link="/admin/oilCollectionScheduling/add" exportFun={exportToCSV} />
         <Table
           data={companies}
           columns={columnDefinitions}

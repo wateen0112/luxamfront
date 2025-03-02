@@ -22,7 +22,7 @@ const formatDate = (dateString) => {
 };
 
 const Page = () => {
-  const [statements, setStatements] = useState(null); // Renamed from companies to statements for clarity
+  const [statements, setStatements] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/statements`);
@@ -41,19 +41,62 @@ const Page = () => {
       // Process the response data to include invoice link and format dates
       const processedData = response.data.data.map((item) => ({
         ...item,
-        company: item.company?.name || "-", // Use company name or fallback to "-"
-        invoice: item.invoice ? `${fileUrl}/statements/invoices/${item.invoice}` : "-", // Generate invoice link
-        proof_of_payment: item.proof_of_payment ? `${fileUrl}/statements/payment_proofs/${item.proof_of_payment}` : "-", // Generate payment proof link (optional, if needed)
-        created_at: formatDate(item.created_at), // Format the created_at date
+        company: item.company?.name || "-",
+        invoice: item.invoice ? `${fileUrl}/statements/invoices/${item.invoice}` : "-",
+        proof_of_payment: item.proof_of_payment ? `${fileUrl}/statements/payment_proofs/${item.proof_of_payment}` : "-",
+        created_at: formatDate(item.created_at),
       }));
 
+      console.log("Fetched statements data:", { ...response.data, data: processedData }); // Debug log
       setStatements({ ...response.data, data: processedData });
     } catch (err) {
       setError("Failed to fetch statements");
-      console.error(err);
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportToCSV = () => {
+    console.log("Exporting to CSV, statements:", statements); // Debug log
+    if (!statements || !Array.isArray(statements.data) || statements.data.length === 0) {
+      console.warn("No valid data to export");
+      alert("No data available to export");
+      return;
+    }
+
+    const headers = columnDefinitions
+      .filter((col) => col.key !== "action") // Exclude action column
+      .map((col) => col.label)
+      .join(",");
+
+    const rows = statements.data.map((item) =>
+      columnDefinitions
+        .filter((col) => col.key !== "action") // Exclude action column
+        .map((col) => {
+          let value = item[col.key] || "";
+          // For invoice and proof_of_payment, use the raw value (URL or "-")
+          if (col.key === "invoice" || col.key === "proof_of_payment") {
+            value = item[col.key]; // Already processed as URL or "-"
+          }
+          // Escape quotes and wrap in quotes if value contains commas
+          return `"${String(value).replace(/"/g, '""')}"`;
+        })
+        .join(",")
+    );
+
+    const csvContent = [headers, ...rows].join("\n");
+    console.log("CSV content:", csvContent); // Debug log
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "statements.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -91,12 +134,12 @@ const Page = () => {
       render: (row) => (
         row.proof_of_payment && row.proof_of_payment !== "-" ? (
           <a 
-            href={row.invoice} 
+            href={row.proof_of_payment} // Fixed to use proof_of_payment instead of invoice
             target="_blank" 
             rel="noopener noreferrer" 
             className="text-blue-500 underline"
           >
-            View Invoice
+            View Proof
           </a>
         ) : (
           "-"
@@ -129,6 +172,7 @@ const Page = () => {
         <p className="text-xl sm:text-2xl font-bold text-[#17a3d7]">
           Statements
         </p>
+        <Header exportFun={exportToCSV} /> {/* Integrated export function */}
         <Table
           data={statements}
           columns={columnDefinitions}

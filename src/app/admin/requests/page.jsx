@@ -15,10 +15,13 @@ const Page = () => {
   const [error, setError] = useState(null);
   const [currentPageUrl, setCurrentPageUrl] = useState(`${apiUrl}/requests`);
   const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState(null); // لتخزين نتائج البحث
+  const [searchResults, setSearchResults] = useState(null);
 
   const searchCompanies = async (searchTerm) => {
-    if (!searchTerm) return; // تجنب إرسال طلب فارغ
+    if (!searchTerm) {
+      setSearchResults(null);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -28,14 +31,20 @@ const Page = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        params: { search: searchTerm }, // إرسال الـ search كـ parameter في URL
+        params: { search: searchTerm },
       });
 
       console.log("Search results:", response.data);
-      setSearchResults(response.data); // حفظ نتائج البحث في الـ state
+      const processedData = response.data.data.map((item) => ({
+        ...item,
+        "user-name": item.user?.name || "-",
+        address: item.address?.address || "-",
+        phone_number: item?.user?.phone_number || "-",
+      }));
+      setSearchResults({ ...response.data, data: processedData });
     } catch (err) {
-      setError("Failed to search companies");
-      console.error(err);
+      setError("Failed to search requests");
+      console.error("Search error:", err);
     } finally {
       setLoading(false);
     }
@@ -43,9 +52,9 @@ const Page = () => {
 
   useEffect(() => {
     if (search) {
-      searchCompanies(search); // تنفيذ البحث عندما يتغير الـ search
+      searchCompanies(search);
     }
-  }, [search]); // يعتمد على متغير search
+  }, [search]);
 
   const fetchCompanies = async (url) => {
     try {
@@ -58,21 +67,64 @@ const Page = () => {
         },
       });
 
-      // تجهيز البيانات لتضمين user.name كـ user-name
       const processedData = response.data.data.map((item) => ({
         ...item,
         "user-name": item.user?.name || "-",
         address: item.address?.address || "-",
-        phone_number: item?.user?.phone_number,
+        phone_number: item?.user?.phone_number || "-",
       }));
 
+      console.log("Fetched requests data:", { ...response.data, data: processedData }); // Debug log
       setCompanies({ ...response.data, data: processedData });
     } catch (err) {
-      setError("Failed to fetch companies");
-      console.error(err);
+      setError("Failed to fetch requests");
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportToCSV = () => {
+    const dataToExport = searchResults || companies;
+    console.log("Exporting to CSV, data:", dataToExport); // Debug log
+
+    if (!dataToExport || !Array.isArray(dataToExport.data) || dataToExport.data.length === 0) {
+      console.warn("No valid data to export");
+      alert("No data available to export");
+      return;
+    }
+
+    const headers = columnDefinitions
+      .filter((col) => col.key !== "show") // Exclude action column (renamed from "show")
+      .map((col) => col.label)
+      .join(",");
+
+    const rows = dataToExport.data.map((item) =>
+      columnDefinitions
+        .filter((col) => col.key !== "show") // Exclude action column
+        .map((col) => {
+          let value = item[col.key] || "";
+          if (col.type === "date" && value) {
+            value = new Date(value).toLocaleDateString(); // Format date
+          }
+          // Escape quotes and wrap in quotes if value contains commas
+          return `"${String(value).replace(/"/g, '""')}"`;
+        })
+        .join(",")
+    );
+
+    const csvContent = [headers, ...rows].join("\n");
+    console.log("CSV content:", csvContent); // Debug log
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "requests.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -114,40 +166,32 @@ const Page = () => {
     try {
       const token = Cookies.get("luxamToken");
 
-      // إرسال طلب GET لتحميل الملف
       const response = await axios.get(`${apiUrl}/requests_document`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        responseType: "blob", // لضمان تحميل الملف
+        responseType: "blob",
       });
 
-      // استخراج نوع الملف من الـ Content-Type
       const contentType = response.headers["content-type"];
-
-      // تحديد امتداد الملف بناءً على Content-Type
       let fileExtension = "";
       if (contentType.includes("pdf")) {
         fileExtension = "pdf";
-      } else if (
-        contentType.includes("excel") ||
-        contentType.includes("spreadsheetml")
-      ) {
-        fileExtension = "xlsx"; // أو xls إذا كان الملف بتنسيق أقدم
+      } else if (contentType.includes("excel") || contentType.includes("spreadsheetml")) {
+        fileExtension = "xlsx";
       } else if (contentType.includes("csv")) {
         fileExtension = "csv";
       } else {
-        fileExtension = "dat"; // يمكن استخدام هذا كامتداد افتراضي
+        fileExtension = "dat";
       }
 
-      // إنشاء رابط لتحميل الملف
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `document.${fileExtension}`); // استخدام الامتداد المناسب
+      link.setAttribute("download", `document.${fileExtension}`);
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link); // إزالة الرابط بعد النقر
+      document.body.removeChild(link);
     } catch (err) {
       console.error("Failed to download the file:", err);
     }
@@ -160,12 +204,11 @@ const Page = () => {
         <Header
           setSearch={setSearch}
           handleDownload={handleDownload}
-          exportFun={true}
-          
+          exportFun={exportToCSV} // Updated from true to the export function
           link=""
         />
         <Table
-          data={searchResults ? searchResults : companies} // استخدم نتائج البحث إذا كانت موجودة
+          data={searchResults ? searchResults : companies}
           columns={columnDefinitions}
           onNextPage={handleNextPage}
           view="requests"

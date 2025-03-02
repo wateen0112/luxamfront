@@ -19,6 +19,22 @@ const Page = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [search, setSearch] = useState("");
 
+  // Helper function to stringify nested objects for CSV
+  const flattenProperties = (properties) => {
+    if (!properties || typeof properties !== "object") return "N/A";
+    const result = [];
+    Object.entries(properties).forEach(([key, value]) => {
+      if (typeof value === "object" && value !== null) {
+        Object.entries(value).forEach(([subKey, subValue]) => {
+          result.push(`${key}_${subKey}: ${subValue || "N/A"}`);
+        });
+      } else {
+        result.push(`${key}: ${value || "N/A"}`);
+      }
+    });
+    return result.join("; ");
+  };
+
   const fetchLogs = async (url) => {
     try {
       setLoading(true);
@@ -30,10 +46,8 @@ const Page = () => {
         },
       });
 
-      // Ensure response.data.data is an array
       const logsData = Array.isArray(response.data.data) ? response.data.data : [];
 
-      // Process the data to make it more readable
       const processedData = logsData.map((log) => {
         const { properties, subject_type, causer_first_name, causer_last_name, causer_email, created_at, description } = log;
 
@@ -126,14 +140,75 @@ const Page = () => {
         };
       });
 
+      console.log("Processed logs data:", processedData); // Debug log
       setAllLogs({ ...response.data, data: processedData });
       setFilteredLogs({ ...response.data, data: processedData });
     } catch (err) {
       setError("Failed to fetch logs");
-      console.error(err);
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportToCSV = () => {
+    console.log("Exporting to CSV, filteredLogs:", filteredLogs); // Debug log
+    if (!filteredLogs || !Array.isArray(filteredLogs.data) || filteredLogs.data.length === 0) {
+      console.warn("No valid data to export");
+      alert("No data available to export");
+      return;
+    }
+
+    const headers = [
+      "Type",
+      "Action",
+      "Causer First Name",
+      "Causer Last Name",
+      "Causer Email",
+      "Created At",
+      "Details",
+    ].join(",");
+
+    const rows = filteredLogs.data.map((log) => {
+      const details = log.type === "Vehicle"
+        ? `Old Vehicle Number: ${log.oldVehicleNumber || "N/A"}, New Vehicle Number: ${log.newVehicleNumber || "N/A"}`
+        : log.type === "User"
+        ? `Old First Name: ${log.oldFirstName || "N/A"}, New First Name: ${log.newFirstName || "N/A"}, Old Last Name: ${log.oldLastName || "N/A"}, New Last Name: ${log.newLastName || "N/A"}, Old Phone: ${log.oldPhoneNumber || "N/A"}, New Phone: ${log.newPhoneNumber || "N/A"}, Old Username: ${log.oldUsername || "N/A"}, New Username: ${log.newUsername || "N/A"}, Old Role: ${log.oldRole || "N/A"}, New Role: ${log.newRole || "N/A"}`
+        : log.type === "Company Branch"
+        ? `Old Branch Name: ${log.oldBranchName || "N/A"}, New Branch Name: ${log.newBranchName || "N/A"}, Old Branch Code: ${log.oldBranchCode || "N/A"}, New Branch Code: ${log.newBranchCode || "N/A"}, Old Area: ${log.oldArea || "N/A"}, New Area: ${log.newArea || "N/A"}`
+        : log.type === "Area"
+        ? `Old Name: ${log.oldName || "N/A"}, New Name: ${log.newName || "N/A"}, Old City ID: ${log.oldCityId || "N/A"}, New City ID: ${log.newCityId || "N/A"}`
+        : log.type === "Instant Collection"
+        ? `Old Quantity: ${log.oldQuantity || "N/A"}, New Quantity: ${log.newQuantity || "N/A"}, Old Price: ${log.oldPrice || "N/A"}, New Price: ${log.newPrice || "N/A"}, Old Company ID: ${log.oldCompanyId || "N/A"}, New Company ID: ${log.newCompanyId || "N/A"}, Old Branch ID: ${log.oldBranchId || "N/A"}, New Branch ID: ${log.newBranchId || "N/A"}`
+        : log.type === "Unknown"
+        ? log.error || "No details available"
+        : flattenProperties(log.properties);
+
+      return [
+        log.type || "",
+        log.action || "",
+        log.causerFirstName || "N/A",
+        log.causerLastName || "N/A",
+        log.causerEmail || "",
+        log.createdAt || "",
+        details,
+      ]
+        .map((value) => `"${String(value).replace(/"/g, '""')}"`) // Escape quotes
+        .join(",");
+    });
+
+    const csvContent = [headers, ...rows].join("\n");
+    console.log("CSV content:", csvContent); // Debug log
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "activity_logs.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -194,7 +269,7 @@ const Page = () => {
           Activity Logs
         </p>
         <Header
-          exportFun={false}
+          exportFun={exportToCSV}
           link=""
           setSearch={setSearch}
           showAddButton={false}
@@ -346,9 +421,7 @@ const Page = () => {
                       ) : log.type === "Unknown" ? (
                         <p>{log.error || "No details available"}</p>
                       ) : (
-                        Object.entries(log.properties).map(([key, value]) => (
-                          <p key={key}>{key.replace(/_/g, " ")}: {value || "N/A"}</p>
-                        ))
+                        renderProperties(log.properties)
                       )}
                     </td>
                   </tr>

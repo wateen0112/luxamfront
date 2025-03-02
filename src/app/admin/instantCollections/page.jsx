@@ -156,7 +156,7 @@ const renderInstantCollections = async (currentPageUrl = `${apiUrl}/instant_coll
         <p className="text-xl sm:text-2xl font-bold text-[#17a3d7]">
           Instant Collections
         </p>
-        <Header exportFun={true} link="/admin/companies/add" />
+        <Header exportFun={true} link="" />
         <Table
           data={companies}
           columns={columnDefinitions}
