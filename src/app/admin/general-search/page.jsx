@@ -156,6 +156,8 @@ const Page = () => {
           },
         });
         setDrivers(response.data);
+
+        
       } catch (error) {
         console.error("Error fetching drivers:", error);
       }
@@ -184,7 +186,7 @@ const Page = () => {
         setVehicles(response?.data?.vehicles || response?.data?.data);
       } catch (error) {
         triggerNotification(error?.response?.data?.message, "warning");
-        console.error("Error fetching vehicles:", error);
+        // console.error("Error fetching vehicles:", error);
       }
     };
 
@@ -486,7 +488,8 @@ const Page = () => {
             (drivers.length > 0
               ? drivers.map((driver) => ({
                   id: driver.id,
-                  value: driver.name,
+            value: driver.first_name+'  ' + driver.last_name,
+                  
                 }))
               : input.options) ?? input.options;
         }

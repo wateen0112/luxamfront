@@ -4,7 +4,7 @@ const RequestCard = ({ data }) => {
   console.log(data.image)
   const imageSrc = data?.image; // جلب الصورة من البيانات
   const isValidImage = imageSrc?.startsWith("http");
-
+  const FILES_URL = process.env.NEXT_PUBLIC_FILES_URL
   return (
     <div className="bg-gray-50 shadow-sm rounded-lg p-3 sm:p-7">
       <div className="flex justify-between items-start">
@@ -12,19 +12,18 @@ const RequestCard = ({ data }) => {
           <p className="text-xl sm:text-2xl font-semibold text-gray-700 mb-5">
             Request #{data.public_id}
           </p>
-          {isValidImage ? (
-          <Image
-            src={imageSrc} // البيانات.image
+         
+        <a href={FILES_URL+imageSrc}>
+        <Image
+            src={FILES_URL+imageSrc} // البيانات.image
             width={1050}
             height={1050}
             alt="address image"
             className="w-[350px] h-[150px] object-cover rounded-sm"
           />
-        ) : (
-          <div className="w-[350px] h-[150px] bg-gray-300 rounded-sm flex justify-center items-center">
-            <span className="text-gray-500">No image available</span>
-          </div>
-        )}
+        </a>
+   
+        
 
         </div>
         <div

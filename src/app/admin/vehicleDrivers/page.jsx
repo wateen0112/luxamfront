@@ -61,7 +61,15 @@ useEffect(()=>{
 
   if (loading) return <Loading />;
   if (error) return <p>{error}</p>;
-
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "-"; // Handle invalid dates
+    const day = date.getDate().toString().padStart(2, "0"); // Ensure 2 digits (e.g., "24")
+    const month = date.toLocaleString("en", { month: "short" }); // e.g., "Feb"
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
   const columnDefinitions = [
     { key: "vehicle_number", label: "Vehicle " }, // Display vehicle name or number
     { key: "driver_name", label: "Driver Name" },   // Display driver name

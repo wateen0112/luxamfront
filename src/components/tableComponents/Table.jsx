@@ -81,7 +81,7 @@ const Table = ({
     });
   };
 
-  // Custom function to format date as "d m y" (e.g., "24 Feb 2025")
+  // Custom function to format date as month abbreviation (e.g., "Feb", "Mar")
   const formatDate = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
@@ -91,7 +91,6 @@ const Table = ({
     const year = date.getFullYear();
     return `${day} ${month} ${year}`;
   };
-
   const handleSort = (columnKey) => {
     const newSortOrder =
       sortColumn === columnKey && sortOrder === "asc" ? "desc" : "asc";
@@ -190,7 +189,9 @@ const Table = ({
                       ) : column.key === "contract_status" ? (
                         <span
                           className={`py-4 px-4 text-center font-semibold uppercase text-sm ${
-                            item[column.key] === "active"
+                            item[column.key]
+                              ?.toString()
+                              .toLowerCase() === "active".toLowerCase()
                               ? "text-green-500"
                               : item[column.key] === "inactive"
                               ? "text-red-600"
@@ -199,15 +200,17 @@ const Table = ({
                         >
                           {item[column.key] || "-"}
                         </span>
-                      ) : column.key === "status" ||
-                        column.key === "user_status" ? (
+                      ) : column.key === "status" || column.key === "user_status" ? (
                         <span
                           className={`py-4 px-4 text-center font-semibold uppercase text-sm ${
-                            item[column.key] === "active"
+                            item[column.key]?.toString().toLowerCase() ===
+                            "active".toLowerCase()
                               ? "text-green-500"
-                              : item[column.key] === "inactive"
+                              : item[column.key]?.toString().toLowerCase() ===
+                                "inactive".toLowerCase()
                               ? "text-red-600"
-                              : item[column.key] === "processing"
+                              : item[column.key]?.toString().toLowerCase() ===
+                                "processing".toLowerCase()
                               ? "text-blue-500"
                               : "text-gray-500"
                           }`}
@@ -215,7 +218,7 @@ const Table = ({
                           {item[column.key] || "-"}
                         </span>
                       ) : column.key === "invoice" ? (
-                        item[column.key] ? (
+                        item[column.key] && item[column.key] !== "-" ? (
                           <a
                             href={item[column.key]}
                             target="_blank"
@@ -227,10 +230,23 @@ const Table = ({
                         ) : (
                           "-"
                         )
+                      ) : column.key === "proof_of_payment" ? (
+                        item[column.key] && item[column.key] !== "-" ? (
+                          <a
+                            href={item[column.key]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 underline font-semibold"
+                          >
+                            View Proof Of Payment
+                          </a>
+                        ) : (
+                          "-"
+                        )
                       ) : column.type === "date" ? (
-                        formatDate(item[column.key])
+                        formatDate(item[column.key]) // Use the month abbreviation for date columns
                       ) : (
-                        item[column.key] || "-"
+                        item[column.key] ?? "-"
                       )}
                     </td>
                   ))}

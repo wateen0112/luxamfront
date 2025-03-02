@@ -230,15 +230,7 @@ const Aside = () => {
               </div>
             ))}
 
-            <ul
-              className={`sticky bottom-0 bg-[#fdf2eb] border-t border-gray-300 pb-11 pt-3 ${
-                isCollapsed ? "px-3" : "px-5"
-              }`}
-            >
-              {/* Uncomment if needed */}
-              {/* <MenuItem href="/admin/settings" icon={SettingIcon} label="Settings" isActive={pathname === "/admin/settings"} isCollapsed={isCollapsed} /> */}
-              <MenuItem icon={LogoutIcon} label="Logout" onClick={handleLogout} isActive={false} isCollapsed={isCollapsed} />
-            </ul>
+
           </motion.aside>
         )}
       </AnimatePresence>

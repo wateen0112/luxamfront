@@ -161,7 +161,8 @@ const Page = () => {
           setSearch={setSearch}
           handleDownload={handleDownload}
           exportFun={true}
-          link="/admin/companies/add"
+          
+          link=""
         />
         <Table
           data={searchResults ? searchResults : companies} // استخدم نتائج البحث إذا كانت موجودة
