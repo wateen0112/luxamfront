@@ -19,6 +19,34 @@ const Page = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [search, setSearch] = useState("");
 
+  // Helper function to stringify nested objects for display
+  const renderProperties = (properties) => {
+    if (!properties || typeof properties !== "object") {
+      return <p>N/A</p>;
+    }
+
+    return Object.entries(properties).map(([key, value]) => {
+      if (typeof value === "object" && value !== null) {
+        return (
+          <p key={key}>
+            {key.replace(/_/g, " ")}:{" "}
+            {Object.entries(value).map(([subKey, subValue]) => (
+              <span key={subKey}>
+                {subKey}: {subValue || "N/A"}
+                {", "}
+              </span>
+            ))}
+          </p>
+        );
+      }
+      return (
+        <p key={key}>
+          {key.replace(/_/g, " ")}: {value || "N/A"}
+        </p>
+      );
+    });
+  };
+
   // Helper function to stringify nested objects for CSV
   const flattenProperties = (properties) => {
     if (!properties || typeof properties !== "object") return "N/A";

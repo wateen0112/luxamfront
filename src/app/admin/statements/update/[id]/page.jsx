@@ -5,7 +5,8 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { useParams } from "next/navigation";
 import Loading from "../../../../../components/Loading";
-
+import { AiOutlineEye } from "react-icons/ai";
+import Link from "next/link";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 // Hardcoded conversion rates (AED as base currency)
@@ -276,6 +277,7 @@ const StatementPage = () => {
     driver: `${collection.vehicle_driver?.driver?.first_name || ""} ${collection.vehicle_driver?.driver?.last_name || ""}`,
     location: collection.company_branch?.branch_name || "",
     companyName: collection.company_branch?.company?.name || "",
+    id : collection.id,
     vehicleNo: collection.vehicle_driver?.vehicle?.vehicle_number || "",
     quantityLiters: collection.collected_liters || 0,
     rate: transformPrice(collection.collected_price), // Transform price for display
@@ -325,6 +327,7 @@ const StatementPage = () => {
                 <th className="p-3 font-semibold text-gray-700">Quantity {unitPreference === "Liter" ? "Liters" : "Kilograms"}</th>
                 <th className="p-3 font-semibold text-gray-700">Rate ({currencySymbol})</th>
                 <th className="p-3 font-semibold text-gray-700">Total Amount ({currencySymbol})</th>
+                <th className="p-3 font-semibold text-gray-700">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -342,6 +345,10 @@ const StatementPage = () => {
                     <td className="p-4 text-gray-700">{transformedQuantity}</td>
                     <td className="p-4 text-gray-700">{currencySymbol}{transformedRate}</td>
                     <td className="p-4 text-gray-700">{currencySymbol}{transformedTotal}</td>
+            
+                    <td className="p-4 text-blue-500 ">  <Link href={`/admin/oilCollectionScheduling/update/${item.id}`}>
+                              <AiOutlineEye color="blue-500" size={20} />
+                            </Link></td>
                   </tr>
                 );
               })}
@@ -404,59 +411,7 @@ const StatementPage = () => {
       </div>
 
       {/* Oil Collection Statement Form (moved below the table) */}
-      <div className="bg-white p-4 rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold text-[#1e3a8a] mb-4">Oil Collection - Statement</h2>
-        <form className="grid gap-6">
-      
-      
-      
-          <div className="py-2">
-            <label className="block text-sm font-medium text-gray-700">Collected Liters *</label>
-            <div className="flex items-center gap-4">
-              <input
-                type="number"
-                name="collectedLiters"
-                value={formData.collectedLiters}
-                onChange={handleInputChange}
-                className="mt-1 block p-2 w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Enter in Liters"
-              />
-              {unitPreference === "KG" && (
-                <span className="text-sm text-gray-500">
-                  ({(formData.collectedLiters * LITERS_TO_KILOGRAMS).toFixed(2)} KG)
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="py-2">
-            <label className="block text-sm font-medium text-gray-700">Collected Price *</label>
-            <div className="flex items-center gap-4">
-              <input
-                type="number"
-                name="collectedPrice"
-                value={formData.collectedPrice}
-                onChange={handleInputChange}
-                className="mt-1 block p-2 w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Enter in AED"
-              />
-              {currency !== "AED" && (
-                <span className="text-sm text-gray-500">
-                  ({CURRENCY_SYMBOLS[currency]}{transformPrice(formData.collectedPrice)})
-                </span>
-              )}
-            </div>
-          </div>
-       
-          <button
-            type="button"
-            onClick={handleUpdate}
-            disabled={isUpdating}
-            className="bg-[#10b981] text-white px-4 py-2 rounded-lg hover:bg-[#059669] transition mt-4"
-          >
-            {isUpdating ? "Updating..." : "Update"}
-          </button>
-        </form>
-      </div>
+
     </div>
   );
 };
