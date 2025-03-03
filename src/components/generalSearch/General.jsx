@@ -18,7 +18,7 @@ const SelectField = ({
     "collected_date",
     "collection_start_date",
     "collection_end_date",
-    "year",
+   
     "verified_start_date",
     "verified_end_date",
   ].includes(name);

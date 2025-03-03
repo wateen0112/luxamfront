@@ -5,11 +5,25 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Cookies from "js-cookie";
-
+import DashboardIcon from "/public/logo/dashboard.png";
+import OfficeIcon from "/public/logo/office.png";
+import QuoteRequestIcon from "/public/logo/quote-request.png";
+import InstantCollectionsIcon from "/public/logo/instantCollections.svg";
+import CollectionSchedulingIcon from "/public/logo/collectionScheduling.svg";
+import PaymentTypesIcon from "/public/logo/paymentTypes.svg";
+import StatementsIcon from "/public/logo/statments.svg";
+import UserIcon from "/public/logo/user.png";
+import VehicleIcon from "/public/logo/vehicle.svg";
+import cities from "/public/logo/cities.svg";
+import areas from "/public/logo/areas.svg";
+import roles from "/public/logo/roles.svg";
+import map from "/public/logo/map.png";
+import settings from '/public/logo/settings.svg';
+import logs from '/public/logo/logs.svg';
+import gps from '/public/logo/gps.svg';
 import Logo from "/public/logo/logo.svg";
 import LogoutIcon from "/public/logo/logout.svg";
 import SettingIcon from "/public/logo/setting.png";
-
 import {
   FiChevronRight,
   FiMenu,
@@ -17,7 +31,6 @@ import {
   FiArrowLeft,
   FiArrowRight,
 } from "react-icons/fi";
-import { filteredMenuSections } from "./data"; // Updated import
 
 const MenuItem = ({
   href,
@@ -85,6 +98,114 @@ const MenuItem = ({
 const Aside = () => {
   const pathname = usePathname();
   const router = useRouter();
+  
+  // Permission checker function
+  const hasPermission = (permission) => {
+    const permissions = Cookies.get("permissions");
+    if (!permissions) return true; // Show all if no permissions cookie
+    const permissionArray = permissions.split(",");
+    return permissionArray.includes(permission);
+  };
+
+  const menuSections = [
+    {
+      title: "Control",
+      items: [
+        { href: "/admin/dashboard", icon: DashboardIcon, label: "Dashboard", permission: "dashboard_access" },
+        {
+          icon: OfficeIcon,
+          label: "Companies",
+          subtitle: [
+            { label: "Companies", href: "/admin/companies", permission: "view_companies" },
+            { label: "Companies Branches", href: "/admin/companiesBranches", permission: "view_company_branches" },
+          ],
+          permission: ["view_companies", "view_company_branches"]
+        },
+        { href: "/admin/requests", icon: QuoteRequestIcon, label: "Requests", permission: "view_requests" },
+        { href: "/admin/instantCollections", icon: InstantCollectionsIcon, label: "Instant Collections", permission: "view_instant_collections" },
+        {
+          href: "/admin/collectionScheduling",
+          icon: CollectionSchedulingIcon,
+          label: "Collection Scheduling",
+          subtitle: [
+            { label: "Schedules", href: "/admin/collectionScheduling", permission: "view_schedules" },
+            { label: "Oil Collection Scheduling", href: "/admin/oilCollectionScheduling", permission: "view_oil_collections" },
+            { label: "General Search", href: "/admin/general-search", permission: "search_requests" },
+          ],
+          permission: ["view_schedules", "view_oil_collections", "search_requests"]
+        },
+        { href: "/admin/paymentTypes", icon: PaymentTypesIcon, label: "Payment Types", permission: "view_payment_types" },
+        { href: "/admin/statements", icon: StatementsIcon, label: "Statements", permission: "view_statements" },
+      ],
+    },
+    {
+      title: "User & Driver",
+      items: [
+        { href: "/admin/users", icon: UserIcon, label: "Users" },
+        {
+          icon: VehicleIcon,
+          label: "Vehicle Driver",
+          subtitle: [
+            { label: "Drivers", href: "/admin/drivers" },
+            { label: "Vehicles", href: "/admin/vehicles" },
+            { label: "Vehicle Drivers", href: "/admin/vehicleDrivers" },
+          ],
+        },
+      ],
+    },
+    {
+      title: "Cities & Areas",
+      items: [
+        { href: "/admin/cities", icon: cities, label: "Cities" },
+        { href: "/admin/areas", icon: areas, label: "Areas" },
+      ],
+    },
+    {
+      title: "Roles & Permission",
+      items: [
+        { href: "/admin/admin", icon: roles, label: "Admins" },
+      ],
+    },
+    {
+      title: "Reports",
+      items: [
+        { href: "/admin/logs", icon: logs, label: "Logs" },
+        { href: "/admin/settings", icon: settings, label: "Settings", permission: "view_settings" },
+      ],
+    },
+    {
+      title: "General",
+      items: [
+        { href: "/admin/map", icon: map, label: "Map" },
+        { href: "/admin/gps", icon: gps, label: "GPS" },
+      ],
+    },
+  ];
+
+  // Filter menu sections based on permissions
+  const filteredMenuSections = menuSections
+    .map(section => ({
+      ...section,
+      items: section.items
+        .map(item => {
+          if (item.subtitle) {
+            const filteredSubtitle = item.subtitle
+              .filter(subItem => 
+                !subItem.permission || hasPermission(subItem.permission)
+              );
+            const showParent = !item.permission || 
+              (Array.isArray(item.permission) 
+                ? item.permission.some(p => hasPermission(p)) 
+                : hasPermission(item.permission));
+            return (filteredSubtitle.length > 0 || showParent)
+              ? { ...item, subtitle: filteredSubtitle.length > 0 ? filteredSubtitle : item.subtitle }
+              : null;
+          }
+          return !item.permission || hasPermission(item.permission) ? item : null;
+        })
+        .filter(Boolean),
+    }))
+    .filter(section => section.items.length > 0);
 
   const [openSections, setOpenSections] = useState({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -139,7 +260,7 @@ const Aside = () => {
       <AnimatePresence>
         {(isSidebarOpen || (typeof window !== "undefined" && window.innerWidth >= 768)) && (
           <motion.aside
-            className={`fixed md:sticky mt- inset-y-0 left-0 ${
+            className={`fixed md:sticky inset-y-0 left-0 ${
               isCollapsed ? "w-[80px]" : "w-[300px]"
             } bg-[#fdf2eb] overflow-y-auto hide-scrollbar z-30 shadow-lg md:shadow-none tracking-tight h-screen md:duration-200`}
             initial={{ x: typeof window !== "undefined" && window.innerWidth >= 768 ? 0 : "-100%" }}
@@ -147,7 +268,7 @@ const Aside = () => {
             exit={{ x: "-100%" }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            <div className="flex items-center justify-center mt-4">
+            <div className="flex items-center justify-center mt-4 relative">
               {!isCollapsed ? (
                 <>
                   <Image
@@ -167,7 +288,7 @@ const Aside = () => {
               ) : (
                 <button
                   onClick={() => setIsCollapsed(!isCollapsed)}
-                  className="hidden md:block bg-[#de8945] text-white rounded-full p-1 shadow-lg mb-"
+                  className="hidden md:block bg-[#de8945] text-white rounded-full p-1 shadow-lg"
                 >
                   {isCollapsed ? <FiArrowRight size={18} /> : <FiArrowLeft size={18} />}
                 </button>
@@ -175,7 +296,6 @@ const Aside = () => {
             </div>
             {!isCollapsed && <hr className="mt-3 mb-3 border-t border-gray-300" />}
 
-            {/* Updated to use filteredMenuSections */}
             {filteredMenuSections.map(({ title, items }) => (
               <div key={title}>
                 {!isCollapsed && (
@@ -229,8 +349,6 @@ const Aside = () => {
                 </ul>
               </div>
             ))}
-
-
           </motion.aside>
         )}
       </AnimatePresence>

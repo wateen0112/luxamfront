@@ -55,9 +55,10 @@ const AddCompanyPage = () => {
 
   const handleChange = (e) => {
     const { id, value } = e.target;
+    // For unitPrice, allow float values by not converting immediately
     setFormData((prevData) => ({
       ...prevData,
-      [id]: value,
+      [id]: id === "unitPrice" ? value : value,
     }));
   };
 
@@ -117,6 +118,15 @@ const AddCompanyPage = () => {
       }
     }
 
+    // Validate and convert unitPrice to float
+    const unitPrice = parseFloat(formData.unitPrice);
+    if (isNaN(unitPrice) || unitPrice < 0) {
+      triggerNotification("Unit price must be a valid positive number.", "error");
+      setError("Unit price must be a valid positive number.");
+      setLoading(false);
+      return;
+    }
+
     const requestData = {
       first_name: formData.firstName,
       last_name: formData.lastName,
@@ -124,7 +134,7 @@ const AddCompanyPage = () => {
       phone_number: formData.phoneNumber,
       password: formData.password,
       name: formData.company,
-      unit_price: parseFloat(formData.unitPrice), // Always in AED
+      unit_price: unitPrice, // Send as float
       contract_start_at: formData.contractStartAt,
       contract_end_at: formData.contractEndAt,
       contract_status: formData.contractStatus,
@@ -242,7 +252,8 @@ const AddCompanyPage = () => {
                 <InputField
                   label="Unit Price (AED)" // Always AED
                   id="unitPrice"
-                  type="number"
+                  type="number" // Keep as number input
+                  step="0.01" // Allow decimal input with 2 decimal places
                   value={formData.unitPrice}
                   onChange={handleChange}
                 />
@@ -308,7 +319,7 @@ const AddCompanyPage = () => {
   );
 };
 
-const InputField = ({ label, id, type, value, onChange, disabled }) => (
+const InputField = ({ label, id, type, value, onChange, disabled, step }) => (
   <div>
     <label className="block font-medium text-gray-600" htmlFor={id}>
       {label} *
@@ -317,7 +328,8 @@ const InputField = ({ label, id, type, value, onChange, disabled }) => (
       id={id}
       type={type}
       value={value}
-      min={type === "number" ? 1 : undefined}
+      min={type === "number" ? 0 : undefined} // Allow zero and positive numbers
+      step={step} // Add step for decimal precision
       onChange={onChange}
       disabled={disabled}
       className={`input mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#17a3d7] focus:outline-none ${

@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import Loading from "../../../../../components/Loading";
 import { AiOutlineEye } from "react-icons/ai";
 import Link from "next/link";
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 // Hardcoded conversion rates (AED as base currency)
@@ -28,28 +29,18 @@ const CURRENCY_SYMBOLS = {
 const StatementPage = () => {
   const { id } = useParams();
   const [statementData, setStatementData] = useState(null);
-  const [drivers, setDrivers] = useState(null);
-  const [vehicles, setVehicles] = useState(null);
-  const [companies, setCompanies] = useState(null);
-  const [branches, setBranches] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [status, setStatus] = useState("verified"); // Match Image 2 status
+  const [status, setStatus] = useState("processing"); // Initial status
   const [isUpdating, setIsUpdating] = useState(false);
-  const [currency, setCurrency] = useState(Cookies.get("currency") || "AED"); // Fetch from cookies, default to AED
-  const [unitPreference, setUnitPreference] = useState(Cookies.get("unit") || "Liter"); // Fetch from cookies, default to Liter
-  const [invoiceFile, setInvoiceFile] = useState(null); // State for invoice path or file name
-  const [proofFile, setProofFile] = useState(null); // State for payment proof path or file name
-  const [uploadLoading, setUploadLoading] = useState(false); // State for upload loading status
-  const [formData, setFormData] = useState({
-   
-    collectedLiters: 0, // Always in liters for input and storage
-    collectedPrice: 0,  // Always in AED for input and storage
-   
-  });
+  const [currency, setCurrency] = useState(Cookies.get("currency") || "AED");
+  const [unitPreference, setUnitPreference] = useState(Cookies.get("unit") || "Liter");
+  const [invoiceFile, setInvoiceFile] = useState(null);
+  const [proofFile, setProofFile] = useState(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch currency and unit preference from cookies, default to AED and Liter
+    // Fetch currency and unit preference from cookies
     const storedCurrency = Cookies.get("currency") || "AED";
     const storedUnit = Cookies.get("unit") || "Liter";
     setCurrency(storedCurrency.toUpperCase());
@@ -65,24 +56,12 @@ const StatementPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setStatementData(statementResponse.data);
-        setStatus(statementResponse.data.current_status || "verified");
+        setStatus(statementResponse.data.current_status || "processing");
 
-        // Pre-fill form data and files from the response if available
+        // Set invoice and proof files from response if available
         const collection = statementResponse.data.collections[0] || {};
-        setFormData({
-         
-       
-          collectedLiters: collection.collected_liters || 0, // Always in liters
-          collectedPrice: collection.collected_price || 0,  // Always in AED
-        
-        });
-
-        // Pre-fill invoice and proof files if they exist (store as paths or names)
         setInvoiceFile(collection.collected_image || null);
         setProofFile(collection.payment_proof || null);
-
-        // Fetch drivers
-     
       } catch (err) {
         setError("Failed to load data.");
         console.error(err);
@@ -92,28 +71,6 @@ const StatementPage = () => {
     };
     fetchAllData();
   }, [id]);
-
-  // Fetch branches based on company ID
-  const fetchBranches = async (companyId, token) => {
-    try {
-      const response = await axios.get(`${apiUrl}/company-branches/company/${companyId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setBranches(response.data.data || response.data); // Adjust based on your API response structure
-    } catch (err) {
-      setError("Failed to load branches for this company.");
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    if (formData.company) {
-      const token = Cookies.get("luxamToken");
-      fetchBranches(formData.company, token);
-    } else {
-      setBranches(null); // Clear branches if no company is selected
-    }
-  }, [formData.company]);
 
   const handleMarkAsVerified = async () => {
     setIsUpdating(true);
@@ -132,79 +89,45 @@ const StatementPage = () => {
       setStatus("verified");
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to update status.");
+      setError(err.response?.data?.message || "Failed to update status to verified.");
+      console.error(err);
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // Handle form input changes (only for collectedLiters and collectedPrice)
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "collectedLiters" || name === "collectedPrice") {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
-  };
-
-  // Transform liters to kilograms or keep as liters
-  const transformQuantity = (liters) => {
-    if (unitPreference === "KG" && liters) {
-      return (parseFloat(liters) * LITERS_TO_KILOGRAMS).toFixed(2); // Convert to kilograms
-    }
-    return parseFloat(liters) || 0; // Return as liters (default)
-  };
-
-  // Transform price from AED to selected currency or keep as AED
-  const transformPrice = (priceInAed) => {
-    if (currency !== "AED" && priceInAed) {
-      return (parseFloat(priceInAed) * CONVERSION_RATES[currency]).toFixed(2); // Convert to selected currency
-    }
-    return parseFloat(priceInAed) || 0; // Return as AED (default)
-  };
-
-  // Handle form submission (Update button) for quantity and price only
-  const handleUpdate = async () => {
+  const handleMarkAsPaid = async () => {
     setIsUpdating(true);
     try {
       const token = Cookies.get("luxamToken");
-
-      // Send collectedLiters as liters (main unit) and collectedPrice as AED (main currency) to backend
-      await axios.patch(
-        `${apiUrl}/update_statement_collection/${statementData.collections[0].id}`, // Updated endpoint to match backend
+      await axios.post(
+        `${apiUrl}/change_statement_status`,
         {
-          collected_liters: parseFloat(formData.collectedLiters) || 0, // Always send in liters
-          collected_price: parseFloat(formData.collectedPrice) || 0, // Always send in AED
+          statement_id: id,
+          status: "paid",
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      setStatus("paid");
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to update collection data.");
+      setError(err.response?.data?.message || "Failed to update status to paid.");
+      console.error(err);
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // Handle invoice file upload directly on file selection
   const handleInvoiceUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      setUploadLoading(true); // Start loading
+      setUploadLoading(true);
       try {
         const token = Cookies.get("luxamToken");
         const formData = new FormData();
         formData.append('invoice_image', file);
-
-        // Use the collection ID from statementData
-        const collectionId = statementData?.collections[0]?.id;
-        // if (!collectionId) {
-        //   throw new Error("No collection ID found in statement data.");
-        // }
 
         const response = await axios.post(
           `${apiUrl}/upload-invoice/${id}`,
@@ -216,34 +139,27 @@ const StatementPage = () => {
             },
           }
         );
-        setInvoiceFile(response.data.image_path || file.name); // Update with the stored path or file name
+        setInvoiceFile(response.data.image_path || file.name);
         setError(null);
         console.log("Invoice uploaded successfully:", response.data);
       } catch (err) {
         setError(err.response?.data?.error || "Failed to upload invoice.");
         console.error("Invoice upload error:", err);
-        setInvoiceFile(null); // Clear file if upload fails
+        setInvoiceFile(null);
       } finally {
-        setUploadLoading(false); // End loading
+        setUploadLoading(false);
       }
     }
   };
 
-  // Handle payment proof file upload directly on file selection
   const handleProofUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      setUploadLoading(true); // Start loading
+      setUploadLoading(true);
       try {
         const token = Cookies.get("luxamToken");
         const formData = new FormData();
         formData.append('proof_of_payment', file);
-
-        // Use the collection ID from statementData
-        const collectionId = statementData?.collections[0]?.id;
-        // if (!collectionId) {
-        //   throw new Error("No collection ID found in statement data.");
-        // }
 
         const response = await axios.post(
           `${apiUrl}/upload-payment-proof/${id}`,
@@ -255,15 +171,15 @@ const StatementPage = () => {
             },
           }
         );
-        setProofFile(response.data.file_path || file.name); // Update with the stored path or file name
+        setProofFile(response.data.file_path || file.name);
         setError(null);
         console.log("Payment proof uploaded successfully:", response.data);
       } catch (err) {
         setError(err.response?.data?.error || "Failed to upload payment proof.");
         console.error("Payment proof upload error:", err);
-        setProofFile(null); // Clear file if upload fails
+        setProofFile(null);
       } finally {
-        setUploadLoading(false); // End loading
+        setUploadLoading(false);
       }
     }
   };
@@ -271,20 +187,20 @@ const StatementPage = () => {
   if (loading) return <Loading />;
   if (error) return <p className="text-center text-red-500">{error}</p>;
 
-  // Dynamic data for the table based on statementData collections
+  // Dynamic table data based on statement collections
   const tableData = statementData?.collections?.map((collection) => ({
     date: collection.collected_at ? new Date(collection.collected_at).toLocaleString() : "",
     driver: `${collection.vehicle_driver?.driver?.first_name || ""} ${collection.vehicle_driver?.driver?.last_name || ""}`,
     location: collection.company_branch?.branch_name || "",
     companyName: collection.company_branch?.company?.name || "",
-    id : collection.id,
+    id: collection.id,
     vehicleNo: collection.vehicle_driver?.vehicle?.vehicle_number || "",
     quantityLiters: collection.collected_liters || 0,
-    rate: transformPrice(collection.collected_price), // Transform price for display
-    totalAmount: collection.collected_liters * transformPrice(collection.collected_price),
+    rate: collection.collected_price || 0,
+    totalAmount: (collection.collected_liters || 0) * (collection.collected_price || 0),
   })) || [];
 
-  // Calculate totals in selected currency and unit
+  // Calculate totals
   const totalLiters = tableData.reduce((sum, item) => sum + (item.quantityLiters || 0), 0);
   const totalQuantity = unitPreference === "KG" ? (totalLiters * LITERS_TO_KILOGRAMS).toFixed(2) : totalLiters;
   const totalRate = tableData.length ? tableData.reduce((sum, item) => sum + (item.rate || 0), 0) / tableData.length : 0;
@@ -292,26 +208,50 @@ const StatementPage = () => {
   const transformedTotalAmount = currency !== "AED" ? (totalAmount * CONVERSION_RATES[currency]).toFixed(2) : totalAmount.toFixed(2);
   const vat = (totalAmount * 0.05).toFixed(2); // 5% VAT in AED
   const transformedVat = currency !== "AED" ? (vat * CONVERSION_RATES[currency]).toFixed(2) : vat;
-  const payableAmount = (totalAmount + parseFloat(vat)).toFixed(2); // In AED
+  const payableAmount = (totalAmount + parseFloat(vat)).toFixed(2);
   const transformedPayableAmount = currency !== "AED" ? (payableAmount * CONVERSION_RATES[currency]).toFixed(2) : payableAmount;
 
-  const currencySymbol = CURRENCY_SYMBOLS[currency] || "AED"; // Default to AED to match main currency
+  const currencySymbol = CURRENCY_SYMBOLS[currency] || "AED ";
 
   return (
     <div className="max-w-5xl mx-auto p-6 mt-6 mb-10">
-      {/* Statement Details Table (moved above the form) */}
       <div className="bg-white p-4 rounded-lg shadow-md mb-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-semibold text-[#1e3a8a]">Statement Details</h1>
           <div className="flex items-center gap-4">
             <span
               className={`px-4 py-2 rounded-full text-white ${
-                status === "processing" ? "bg-[#7e5bef]" : "bg-[#10b981]"
+                status === "processing" ? "bg-[#7e5bef]" : 
+                status === "verified" ? "bg-[#10b981]" : 
+                "bg-green-600"
               }`}
             >
-              {status === "processing" ? "Processing" : "Verified"}
+              {status === "processing" ? "Processing" : 
+               status === "verified" ? "Verified" : 
+               "Paid"}
             </span>
-            {/* Removed the "Mark As Verified" button since Image 2 shows "Verified" status */}
+            {status === "processing" && (
+              <button
+                onClick={handleMarkAsVerified}
+                disabled={isUpdating}
+                className={`px-4 py-2 rounded-lg text-white ${
+                  isUpdating ? "bg-gray-400 cursor-not-allowed" : "bg-[#10b981] hover:bg-[#059669]"
+                } transition`}
+              >
+                {isUpdating ? "Updating..." : "Mark as Verified"}
+              </button>
+            )}
+            {status === "verified" && (
+              <button
+                onClick={handleMarkAsPaid}
+                disabled={isUpdating}
+                className={`px-4 py-2 rounded-lg text-white ${
+                  isUpdating ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                } transition`}
+              >
+                {isUpdating ? "Updating..." : "Mark as Paid"}
+              </button>
+            )}
           </div>
         </div>
 
@@ -345,10 +285,11 @@ const StatementPage = () => {
                     <td className="p-4 text-gray-700">{transformedQuantity}</td>
                     <td className="p-4 text-gray-700">{currencySymbol}{transformedRate}</td>
                     <td className="p-4 text-gray-700">{currencySymbol}{transformedTotal}</td>
-            
-                    <td className="p-4 text-blue-500 ">  <Link href={`/admin/oilCollectionScheduling/update/${item.id}`}>
-                              <AiOutlineEye color="blue-500" size={20} />
-                            </Link></td>
+                    <td className="p-4 text-blue-500">
+                      <Link href={`/admin/oilCollectionScheduling/update/${item.id}`}>
+                        <AiOutlineEye color="blue-500" size={20} />
+                      </Link>
+                    </td>
                   </tr>
                 );
               })}
@@ -375,45 +316,48 @@ const StatementPage = () => {
           </p>
         </div>
 
-        {/* Upload Buttons (Direct Upload on File Selection with Loading) */}
+        {/* Upload Buttons */}
         <div className="mt-6 flex gap-4 justify-end">
           <label className={`bg-[#10b981] text-white px-4 py-2 rounded-lg hover:bg-[#059669] cursor-pointer transition ${uploadLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
             Upload Invoice {uploadLoading && '(Uploading...)'}
             <input
               type="file"
-              accept="image/*" // Updated to accept only images for invoice
+              accept="image/*"
               onChange={handleInvoiceUpload}
               className="hidden"
-              disabled={uploadLoading||statementData.statement.invoice}
+              disabled={uploadLoading || statementData.statement.invoice}
             />
           </label>
           <label className={`bg-[#10b981] text-white px-4 py-2 rounded-lg hover:bg-[#059669] cursor-pointer transition ${uploadLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
             Upload Proof of Payment {uploadLoading && '(Uploading...)'}
             <input
-            
               type="file"
-              accept="*/*" // Accepts any file type for payment proof
+              accept="*/*"
               onChange={handleProofUpload}
               className="hidden"
-              disabled={uploadLoading||statementData.statement.proof_of_payment}
+              disabled={uploadLoading || statementData.statement.proof_of_payment}
             />
           </label>
         </div>
 
-
-        {/* Display uploaded file names (optional) */}
+        {/* Display uploaded file names */}
         {invoiceFile && (
-          <p className="mt-2 text-gray-700">Selected Invoice: {invoiceFile || "No file selected"}</p>
+          <p className="mt-2 text-gray-700">Selected Invoice: {invoiceFile}</p>
         )}
         {proofFile && (
-          <p className="mt-2 text-gray-700">Selected Proof of Payment: {proofFile || "No file selected"}</p>
+          <p className="mt-2 text-gray-700">Selected Proof of Payment: {proofFile}</p>
         )}
       </div>
-
-      {/* Oil Collection Statement Form (moved below the table) */}
-
     </div>
   );
+
+  // Transform price based on currency
+  function transformPrice(priceInAed) {
+    if (currency !== "AED" && priceInAed) {
+      return (parseFloat(priceInAed) * CONVERSION_RATES[currency]).toFixed(2);
+    }
+    return parseFloat(priceInAed) || 0;
+  }
 };
 
 export default StatementPage;

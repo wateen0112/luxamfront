@@ -130,7 +130,7 @@ const Page = () => {
       <p className="text-xl sm:text-2xl font-bold text-[#17a3d7] self-start">
         Search Results
       </p>
-      <Header exportFun={exportToCSV} /> {/* Added Header with export function */}
+      <Header exportFun={exportToCSV}  link="" /> {/* Added Header with export function */}
 
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center h-[50vh]">

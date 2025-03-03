@@ -8,7 +8,7 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const UpdateCompanyPage = () => {
   const router = useRouter();
-  const { id } = useParams(); // Get the company ID from the URL
+  const { id } = useParams();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -29,15 +29,13 @@ const UpdateCompanyPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [currency, setCurrency] = useState("AED"); // Default to AED for SSR
+  const [currency, setCurrency] = useState("AED");
 
-  // Fetch currency from cookies only on client side
   useEffect(() => {
     const cookieCurrency = Cookies.get("currency") || "AED";
     setCurrency(cookieCurrency);
   }, []);
 
-  // Fetch company data when the page loads
   useEffect(() => {
     if (id) {
       const fetchCompanyData = async () => {
@@ -79,14 +77,12 @@ const UpdateCompanyPage = () => {
     }
   }, [id]);
 
-  // Hardcoded exchange rates (AED as base)
   const exchangeRates = {
     AED: 1,
-    USD: 0.27, // 1 AED ≈ 0.27 USD
-    EUR: 0.25, // 1 AED ≈ 0.25 EUR
+    USD: 0.27,
+    EUR: 0.25,
   };
 
-  // Convert AED to other currencies
   const convertPrice = (valueInAED) => {
     if (!valueInAED || isNaN(valueInAED)) return { USD: "N/A", EUR: "N/A" };
     return {
@@ -99,7 +95,7 @@ const UpdateCompanyPage = () => {
     const { id, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
-      [id]: value,
+      [id]: id === "unit_price" ? value : value, // Keep unit_price as string until submission
     }));
   };
 
@@ -116,21 +112,23 @@ const UpdateCompanyPage = () => {
       return;
     }
 
-    // Validate unit_price only if it has changed and is empty
+    // Validate unit_price
+    const unitPrice = parseFloat(formData.unit_price);
     if (
-      formData.unit_price === "" &&
+      formData.unit_price !== "" && // Only validate if not empty
+      (isNaN(unitPrice) || unitPrice < 0) &&
       formData.unit_price !== originalData.unit_price
     ) {
-      setError("Unit price is required.");
+      setError("Unit price must be a valid positive number.");
       setLoading(false);
       return;
     }
 
-    // Prepare request data with only changed fields
     const requestData = {};
     if (formData.name !== originalData.name) requestData.name = formData.name;
-    if (formData.unit_price !== originalData.unit_price)
-      requestData.unit_price = parseFloat(formData.unit_price); // Always in AED
+    if (formData.unit_price !== originalData.unit_price) {
+      requestData.unit_price = formData.unit_price === "" ? null : unitPrice; // Send as float or null
+    }
     if (formData.contract_start_at !== originalData.contract_start_at)
       requestData.contract_start_at = formData.contract_start_at;
     if (formData.contract_end_at !== originalData.contract_end_at)
@@ -204,9 +202,10 @@ const UpdateCompanyPage = () => {
           />
           <div>
             <InputField
-              label="Unit Price (AED)" // Always in AED
+              label="Unit Price (AED)"
               id="unit_price"
               type="number"
+              step="0.01" // Allow decimal input with 2 decimal places
               value={formData.unit_price}
               onChange={handleChange}
             />
@@ -254,7 +253,7 @@ const UpdateCompanyPage = () => {
   );
 };
 
-const InputField = ({ label, id, type, value, onChange }) => (
+const InputField = ({ label, id, type, value, onChange, step }) => (
   <div>
     <label className="block font-medium text-gray-600" htmlFor={id}>
       {label}
@@ -263,6 +262,8 @@ const InputField = ({ label, id, type, value, onChange }) => (
       id={id}
       type={type}
       value={value}
+      min={type === "number" ? 0 : undefined} // Prevent negative numbers
+      step={step} // Add step for decimal precision
       onChange={onChange}
       className="input mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#17a3d7] focus:outline-none"
     />

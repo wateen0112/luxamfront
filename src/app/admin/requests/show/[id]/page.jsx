@@ -39,10 +39,10 @@ const InputField = ({
   </div>
 );
 
-const SelectField = ({ name, label, options, onChange }) => (
+const SelectField = ({ name, label, options, onChange, value }) => (
   <div>
     <label className="block font-medium text-gray-600">{label}</label>
-    <Select onValueChange={(val) => onChange(val)}>
+    <Select onValueChange={(val) => onChange(val)} value={value}>
       <SelectTrigger className="w-full mt-1 px-4 py-2 border rounded-md outline-none">
         <SelectValue placeholder={`Select ${label}`} />
       </SelectTrigger>
@@ -59,9 +59,9 @@ const SelectField = ({ name, label, options, onChange }) => (
 
 const Page = () => {
   const router = useRouter();
-  const { id } = useParams(); // استخراج ID من الرابط
+  const { id } = useParams();
   const [requestData, setRequestData] = useState(null);
-  const [nearestDrivers, setNearestDrivers] = useState([]);
+  const [drivers, setDrivers] = useState([]); // State for all drivers
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [editableData, setEditableData] = useState({});
@@ -69,19 +69,23 @@ const Page = () => {
   const [driverVehicles, setDriverVehicles] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
-
-    const fetchRequestData = async () => {
+    const fetchData = async () => {
       const token = Cookies.get("luxamToken");
+      if (!token || !id) return;
+
       try {
-        const response = await axios.get(`${apiUrl}/requests/${id}`, {
+        setLoading(true);
+
+        // Fetch request data
+        const requestResponse = await axios.get(`${apiUrl}/requests/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        const data = response.data;
+        const data = requestResponse.data;
         setRequestData(data.user_request);
         setAddress(data.user_request.address || "");
         setEditableData({
@@ -89,22 +93,29 @@ const Page = () => {
           collectedQuantity: data.user_request.collected_liters || "",
           collectedPrice: data.user_request.collected_price || "",
         });
-        setNearestDrivers(
-          data.drivers.map((driver) => ({
-            value: driver.id,
-            label: driver.name,
-          }))
-        );
+
+        // Fetch all drivers
+        const driversResponse = await axios.get(`${apiUrl}/get_drivers`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const driversList = driversResponse.data.map((driver) => ({
+          value: driver.id.toString(), // Ensure value is a string for Select component
+          label: `${driver.first_name} ${driver.last_name}`,
+        }));
+        setDrivers(driversList);
       } catch (error) {
-        console.error("Error fetching request data:", error);
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchRequestData();
+    fetchData();
   }, [id]);
 
   useEffect(() => {
-    // تأكد من أن selectedDriver ليس null قبل استدعاء API
     if (!selectedDriver) return;
 
     const fetchDriverVehicles = async () => {
@@ -120,10 +131,9 @@ const Page = () => {
         );
 
         const vehicles = response.data.data.map((vehicle) => ({
-          value: vehicle.vehicle_id,
+          value: vehicle.vehicle_id.toString(), // Ensure value is a string
           label: vehicle.vehicle_number,
         }));
-
         setDriverVehicles(vehicles);
       } catch (error) {
         console.error("Error fetching driver vehicles:", error);
@@ -131,7 +141,7 @@ const Page = () => {
     };
 
     fetchDriverVehicles();
-  }, [selectedDriver]); // يعتمد على selectedDriver
+  }, [selectedDriver]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -143,7 +153,7 @@ const Page = () => {
     axios
       .put(
         `${apiUrl}/requests/${id}`,
-        data, // البيانات التي سيتم إرسالها
+        data,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -167,7 +177,7 @@ const Page = () => {
 
     try {
       const response = await axios.post(
-        `${apiUrl / `reject_request/${id}`}`,
+        `${apiUrl}/reject_request/${id}`, // Fixed template literal syntax
         { note },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -182,7 +192,7 @@ const Page = () => {
     }
   };
 
-  if (!requestData) {
+  if (loading) {
     return <Loading />;
   }
 
@@ -243,16 +253,18 @@ const Page = () => {
               />
               <div className="mt-5 flex flex-col gap-5">
                 <SelectField
-                  name="nearestDrivers"
-                  label="Nearest Drivers"
-                  options={nearestDrivers}
+                  name="drivers"
+                  label="Drivers"
+                  options={drivers}
                   onChange={setSelectedDriver}
+                  value={selectedDriver}
                 />
                 <SelectField
                   name="vehicle"
                   label="Vehicle"
                   options={driverVehicles}
                   onChange={setSelectedVehicle}
+                  value={selectedVehicle}
                 />
               </div>
               <div className="mt-5">
@@ -260,6 +272,7 @@ const Page = () => {
                   name="createdAt"
                   label="Created at"
                   value={formatDate(requestData.created_at)}
+                  readOnly
                 />
               </div>
 
@@ -292,7 +305,7 @@ const Page = () => {
                 </div>
               )}
 
-              {!requestData.status === "collected" &&
+              {requestData.status !== "collected" &&
                 requestData.price !== null && (
                   <div className="mt-5 flex items-center gap-4">
                     <button
